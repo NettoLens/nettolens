@@ -182,14 +182,15 @@
     padding: 26px 0;
     border-bottom: 1px solid var(--line);
   }
-  .logo { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 26px; letter-spacing: -0.01em; }
-  @media (max-width: 420px) { .logo { font-size: 20px; gap: 8px; } }
+  .logo { display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 30px; letter-spacing: -0.01em; }
+  @media (max-width: 420px) { .logo { font-size: 22px; gap: 8px; } }
   .wm-gold { color: var(--accent); text-shadow: 0 0 14px rgba(242,201,76,.35); }
-  .logo svg { display: block; width: 46px; height: 46px; filter: drop-shadow(0 0 8px rgba(242,201,76,.55)) drop-shadow(0 0 18px rgba(242,201,76,.25)); }
+  .logo svg { display: block; width: 46px; height: 46px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.65)) drop-shadow(0 0 12px rgba(242,201,76,.28)); }
   @media (max-width: 420px) { .logo svg { width: 36px; height: 36px; } }
-  .navlinks { display: flex; gap: 32px; font-size: 15px; font-weight: 500; color: #D3D9E8; }
+  .navlinks { display: flex; gap: 26px; font-size: 15px; font-weight: 600; color: #F4F6FB; text-shadow: 0 0 10px rgba(255,255,255,.12); }
   .navlinks a { text-decoration: none; }
-  .navlinks a:hover { color: #FFFFFF; text-shadow: 0 0 12px rgba(242,201,76,.45); }
+  .navlinks a { transition: color .15s ease, text-shadow .15s ease; white-space: nowrap; }
+  .navlinks a:hover { color: var(--accent); text-shadow: 0 0 14px rgba(242,201,76,.55); }
   .navlinks a:focus-visible, button:focus-visible, input:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
@@ -219,19 +220,43 @@
   }
 
   .ticker-bar {
-    display: flex; align-items: center; justify-content: center; gap: 22px;
-    flex-wrap: wrap; padding: 9px 20px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 20px;
     background: var(--surface); border-bottom: 1px solid var(--line);
     position: relative; z-index: 1;
     font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
   }
   .ticker-bar .val { color: var(--accent); font-weight: 600; }
-  .ticker-live { display: inline-flex; align-items: center; gap: 6px; color: var(--safe); font-weight: 600; }
+  .ticker-live { flex: none; display: inline-flex; align-items: center; gap: 6px; color: var(--safe); font-weight: 600; }
   .ticker-live .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--safe); }
   @media (prefers-reduced-motion: no-preference) {
     .ticker-live .live-dot { animation: pulse 1.8s ease-in-out infinite; }
   }
-  @media (max-width: 480px) { .ticker-bar { gap: 12px; font-size: 11px; } }
+  /* Scrolling strip: two identical sets side by side, shifted left by exactly one set for a seamless loop */
+  .ticker-viewport {
+    flex: 1; min-width: 0; overflow: hidden; white-space: nowrap;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent);
+  }
+  .ticker-track { display: flex; width: max-content; will-change: transform; animation: tk-scroll var(--tk-dur, 40s) linear infinite; }
+  .ticker-set { display: flex; flex: none; }
+  .ticker-group { display: inline-flex; align-items: center; gap: 26px; padding-right: 26px; flex: none; }
+  .ticker-item { display: inline-flex; gap: 6px; }
+  .ticker-group .sep { opacity: .35; font-size: 8px; }
+  @media (hover: hover) { .ticker-bar:hover .ticker-track { animation-play-state: paused; } }
+  .ticker-bar.tk-paused .ticker-track { animation-play-state: paused; }
+  .ticker-toggle {
+    flex: none; width: 26px; height: 24px; padding: 0; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 6px; background: transparent;
+    color: var(--text-dim); font: 11px/1 var(--font-mono);
+  }
+  .ticker-toggle:hover, .ticker-toggle:focus-visible { color: var(--accent); border-color: var(--accent); }
+  @keyframes tk-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  /* Respect "reduce motion": the strip starts still, and the button lets people choose to play it */
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-bar:not(.tk-play) .ticker-track { animation: none; }
+  }
+  @media (max-width: 480px) { .ticker-bar { gap: 10px; font-size: 11px; padding: 8px 14px; } }
 
   .status-banner {
     display: flex; align-items: center; gap: 10px; justify-content: center;
@@ -421,7 +446,15 @@
   @media (min-width: 901px) {
     .hero.has-results .hot { display: none; }
     .hero.has-results .back-live { display: inline-block; }
-    .hero.has-results .side-graph { margin-top: 10px; }
+    .hero.has-results .side-graph { margin: 0 auto; width: min(340px, 100%); position: relative; top: auto; }
+    @media (max-height: 860px) { .hero.has-results .side-graph { width: min(290px, 100%); } }
+    /* the globe and the graph stay in view together while the results scroll on the right */
+    .hero.has-results .hero-left { position: sticky; top: 64px; align-self: start; }
+    .hero-left .focus-stage { position: relative; isolation: isolate; }
+    .hero-left .focus-stage::before {
+      content: ""; position: absolute; inset: -6% 8%; z-index: -1; pointer-events: none;
+      background: radial-gradient(circle at 50% 46%, rgba(8,10,18,.95) 0%, rgba(8,10,18,.8) 45%, rgba(8,10,18,0) 70%);
+    }
   }
   @media (max-width: 900px) {
     .hero-head { display: block; }
@@ -547,6 +580,16 @@
     display: none;
   }
   .result-card.visible { display: block; }
+  /* ---------- FOCUS LENS: the scan, made visible. Pinned while scanning, released once it has locked ---------- */
+  .focus-stage { display: none; text-align: center; margin: -6px 0 14px; }
+  .result-card.visible .focus-stage.on { display: block; }
+  .hero.has-results .hero-left .focus-stage.on { display: block; margin: 0 0 4px; }
+  .focus-stage canvas { display: block; margin: 0 auto; pointer-events: none; }
+  .focus-wrap { position: relative; margin: 0 auto; }
+  .focus-wrap canvas { position: absolute; left: 0; top: 0; }
+  .focus-cap { min-height: 17px; margin-top: 2px; font: 500 11.5px/1.3 var(--font-mono); letter-spacing: .06em;
+    color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .focus-cap b { color: var(--accent); font-weight: 600; }
   .result-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 16px; }
   .result-token { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); word-break: break-all; }
   .result-token strong { color: var(--text); font-size: 15px; font-family: var(--font-display); word-break: normal; }
@@ -597,6 +640,26 @@
   .tier-row .tier-fill { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
   .tier-row .tier-pct { width: 46px; text-align: right; color: var(--text); font-family: var(--font-mono); font-size: 11px; flex-shrink: 0; }
 
+  /* ---------- LENS NOTES: a plain-language read-out written from this scan's own results ---------- */
+  .lens-notes { display: none; margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(18,24,44,0.55); }
+  .lens-notes.visible { display: block; }
+  .ln-hd { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font: 600 11px var(--font-mono); letter-spacing: .14em; color: var(--text-dim); }
+  .ln-hd span { font-weight: 500; letter-spacing: .04em; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ln-body { padding: 12px 14px 6px; font-size: 14px; line-height: 1.65; color: var(--text); min-height: 48px; }
+  .ln-body p { margin: 0 0 6px; }
+  .ln-body p.bad { color: var(--danger); } .ln-body p.caution { color: var(--warn); }
+  .ln-cursor { display: inline-block; width: 7px; height: 1em; background: var(--accent); vertical-align: -2px; margin-left: 2px; animation: lnBlink .8s infinite; }
+  @keyframes lnBlink { 50% { opacity: 0; } }
+  .ln-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 14px 12px; }
+  .ln-chip { font: 500 12px var(--font-mono); color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+  .ln-chip:hover, .ln-chip:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+  .ln-answer { padding: 0 14px 12px; font-size: 14px; line-height: 1.6; color: var(--text); }
+  .ln-answer:empty { display: none; }
+  .ln-answer p { margin: 0 0 4px; }
+  .ln-q { display: block; font: 500 12px var(--font-mono); color: var(--accent); margin-bottom: 4px; }
+  .ln-fine { margin: 0; padding: 9px 14px; border-top: 1px solid var(--line); font: 11px/1.5 var(--font-mono); color: var(--text-dim); }
+  @media (prefers-reduced-motion: reduce) { .ln-cursor { animation: none; } }
   .investigation-summary {
     margin-top: 22px; padding: 16px 18px; border-radius: 10px;
     background: rgba(242,201,76,0.06); border: 1px solid rgba(242,201,76,0.2);
@@ -746,6 +809,103 @@
     footer { flex-direction: column; gap: 14px; text-align: center; }
     footer .disclaimer { text-align: center; }
   }
+
+  /* ---------- HERO WITH THE EARTH: globe on the left as big as the screen allows, scan on the far right, live tokens below ---------- */
+  .hero { display: block; padding-top: 24px; }
+  .hero-main {
+    display: grid; gap: 22px 36px; align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    grid-template-areas: "earth head" "earth scan";
+    grid-template-rows: auto 1fr;
+    margin-inline: calc(50% - min(720px, 50vw - 20px));
+  }
+  .hero-main > .hero-head { grid-area: head; display: block; position: relative; isolation: isolate; }
+  .hero .hero-head h1 { font-size: clamp(28px, 2.6vw, 40px); margin: 0 0 10px; }
+  .hero .hero-head p { font-size: 15px; }
+  .hero-main > .hero-scan { grid-area: scan; position: relative; }
+  .hero-main > .earth {
+    grid-area: earth; position: sticky; top: 64px; align-self: start;
+    height: clamp(480px, calc(100vh - 210px), 860px); min-width: 0; isolation: isolate;
+  }
+  .hero > .hero-left { margin-top: 40px; }
+  /* a dark well behind the planet so the page's sky doesn't tangle with it */
+  .hero-main > .earth::before { content: ""; position: absolute; inset: -4% -2%; z-index: -1; pointer-events: none;
+    background: radial-gradient(circle at 50% 48%, rgba(5,7,13,.97) 0%, rgba(5,7,13,.9) 34%, rgba(5,7,13,.55) 48%, rgba(5,7,13,0) 64%); }
+  .hero-main > .hero-head::before { content: ""; position: absolute; inset: -18px -24px; z-index: -1; pointer-events: none;
+    background: radial-gradient(ellipse at 40% 50%, rgba(5,7,13,.92) 0%, rgba(5,7,13,.7) 50%, rgba(5,7,13,0) 78%); }
+  .earth canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .earth-foot { position: absolute; left: 0; right: 0; bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 12px; pointer-events: none; }
+  #earthCap { font: 500 12.5px/1.3 var(--font-mono); color: var(--text-dim); letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+  #earthCap b { color: var(--accent); font-weight: 600; }
+  #earthPause { pointer-events: auto; background: rgba(8,11,20,.6); color: var(--accent); border: 1px solid rgba(242,201,76,.4); border-radius: 8px;
+    font: 600 12px var(--font-display); padding: 5px 9px; cursor: pointer; }
+  #earthPause:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  /* the old side graph and the back button are replaced by the globe; the list is always there below */
+  .hero .side-graph, .hero.has-results .side-graph, .hero .back-live, .hero.has-results .back-live { display: none !important; }
+  .hero.has-results .hot { display: block !important; }
+  .hero.has-results .hero-left { position: static; }
+  @media (max-width: 900px) {
+    .hero-main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "earth" "scan"; grid-template-rows: none; margin-inline: 0; }
+    .hero-main > .earth { position: relative; top: auto; height: min(100vw, 520px); margin: 0 -16px; }
+    .hero > .hero-left { margin-top: 28px; }
+  }
+
+  /* ---------- NAV ACROSS THE FULL WIDTH: logo on the far left, links in the middle, X on the right ---------- */
+  @media (min-width: 901px) {
+    .nav-wrap > nav { margin-inline: calc(50% - min(720px, 50vw - 20px)); }
+  }
+  @media (max-width: 1280px) and (min-width: 721px) { .navlinks { gap: 18px; font-size: 14.5px; } }
+  @media (max-width: 1140px) and (min-width: 721px) { .navlinks .nav-more { display: none; } }
+
+  /* ---------- SHARE CARD ---------- */
+  .share-box { display: none; margin-top: 18px; border: 1px solid rgba(242,201,76,.28); border-radius: 14px; padding: 16px; background: rgba(8,11,20,.6); }
+  .share-box.on { display: block; animation: sbIn .35s ease both; }
+  @keyframes sbIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .sb-hd { font: 600 12px var(--font-mono); letter-spacing: .14em; color: var(--accent); margin-bottom: 12px; }
+  #shareImg { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+  .sb-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .sb-btn { flex: 1 1 auto; min-width: 110px; font: 600 14px var(--font-display); color: var(--text); background: transparent;
+    border: 1px solid rgba(242,201,76,.35); border-radius: 9px; padding: 10px 12px; cursor: pointer; transition: background .15s ease, color .15s ease; }
+  .sb-btn:hover { background: rgba(242,201,76,.1); color: var(--accent); }
+  .sb-btn.sb-main { background: var(--accent); color: #0B0E17; border-color: var(--accent); }
+  .sb-btn.sb-main:hover { filter: brightness(1.06); color: #0B0E17; }
+  .sb-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .sb-msg { min-height: 18px; margin-top: 8px; font: 500 12.5px var(--font-mono); color: var(--safe); }
+
+  /* ---------- HUD AROUND THE GLOBE: live chain data at rest, the four check groups during a scan ---------- */
+  .hud { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+  .hud-corner { position: absolute; width: 22px; height: 22px; border-color: rgba(95,224,208,.45); border-style: solid; border-width: 0; }
+  .hud-corner.c-tl { top: 0; left: 0; border-top-width: 1.5px; border-left-width: 1.5px; }
+  .hud-corner.c-tr { top: 0; right: 0; border-top-width: 1.5px; border-right-width: 1.5px; }
+  .hud-corner.c-bl { bottom: 0; left: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; }
+  .hud-corner.c-br { bottom: 0; right: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; }
+  .hud-panel { position: absolute; width: 200px; padding: 10px 12px; border-radius: 10px; pointer-events: auto;
+    background: linear-gradient(160deg, rgba(10,16,30,.82), rgba(6,9,18,.7)); border: 1px solid rgba(95,224,208,.28);
+    box-shadow: 0 0 18px rgba(95,224,208,.08), inset 0 0 12px rgba(95,224,208,.05); backdrop-filter: blur(3px);
+    font: 500 12px var(--font-mono); color: #C9D3E6; transition: opacity .45s ease, transform .45s ease; }
+  .hud-tl { top: 14px; left: 14px; } .hud-tr { top: 14px; right: 14px; } .hud-bl { bottom: 40px; left: 14px; } .hud-br { bottom: 40px; right: 14px; }
+  .hud-hd { font: 600 10.5px var(--font-mono); letter-spacing: .07em; white-space: nowrap; color: #5FE0D0; margin-bottom: 7px; display: flex; align-items: center; gap: 6px; }
+  .hud-dot { width: 7px; height: 7px; border-radius: 50%; background: #5FC98D; box-shadow: 0 0 8px #5FC98D; animation: hudPulse 1.8s ease-in-out infinite; }
+  @keyframes hudPulse { 50% { opacity: .35; } }
+  .hud-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .hud-row span { color: #8993AD; } .hud-row b { color: var(--accent); font-weight: 600; }
+  .hud-list { list-style: none; margin: 0; padding: 0; }
+  .hud-list li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 6px; margin: 0 -6px; border-radius: 6px; cursor: pointer; }
+  .hud-list li:hover, .hud-list li:focus-visible { background: rgba(242,201,76,.1); outline: none; }
+  .hud-list li b { color: #F4F6FB; font-weight: 600; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hud-list li span { color: #8993AD; } .hud-list li.hud-muted { cursor: default; color: #8993AD; }
+  .hud-foot { margin-top: 6px; font-size: 10.5px; color: #6B7591; }
+  .hud-n { font: 700 22px var(--font-display); color: #F4F6FB; } .hud-n span { color: #8993AD; font-size: 15px; font-weight: 500; }
+  .hud-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); margin-top: 6px; overflow: hidden; }
+  .hud-bar i { display: block; height: 100%; width: 0; background: #F2C94C; transition: width .4s ease, background .3s ease; }
+  .hud-scan[data-st="ok"] { border-color: rgba(95,201,141,.5); } .hud-scan[data-st="ok"] .hud-bar i { background: #5FC98D; } .hud-scan[data-st="ok"] .hud-hd { color: #5FC98D; }
+  .hud-scan[data-st="warn"] { border-color: rgba(232,163,61,.55); } .hud-scan[data-st="warn"] .hud-bar i { background: #E8A33D; } .hud-scan[data-st="warn"] .hud-hd { color: #E8A33D; }
+  .hud-scan[data-st="risk"] { border-color: rgba(255,90,90,.6); } .hud-scan[data-st="risk"] .hud-bar i { background: #FF5A5A; } .hud-scan[data-st="risk"] .hud-hd { color: #FF5A5A; }
+  .hud-scan { opacity: 0; transform: scale(.96); pointer-events: none; }
+  .hud.scanning .hud-scan { opacity: 1; transform: none; }
+  .hud.scanning .hud-idle { opacity: 0; transform: scale(.96); pointer-events: none; }
+  @media (max-width: 1100px) { .hud-panel { display: none; } }
+  @media (max-width: 900px) { .hud { display: none; } }
 </style>
 </head>
 <body>
@@ -971,19 +1131,32 @@
 <div class="wrap nav-wrap">
   <nav>
     <div class="logo" translate="no">
-      <svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <svg width="56" height="56" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <radialGradient id="nlGlass" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#1A2036"/><stop offset="1" stop-color="#090C15"/></radialGradient>
-          <linearGradient id="nlGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset=".55" stop-color="#F2C94C"/><stop offset="1" stop-color="#C99A2E"/></linearGradient>
+          <linearGradient id="nlRim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#FFF4C8"/><stop offset=".22" stop-color="#F2C94C"/><stop offset=".48" stop-color="#8E6213"/>
+            <stop offset=".7" stop-color="#F5D670"/><stop offset="1" stop-color="#6E4A0C"/></linearGradient>
+          <radialGradient id="nlGlass2" cx="36%" cy="32%" r="78%"><stop offset="0" stop-color="#2B3A63"/><stop offset=".55" stop-color="#121a33"/><stop offset="1" stop-color="#05070e"/></radialGradient>
+          <radialGradient id="nlShine" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+          <linearGradient id="nlGrip" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a3326"/><stop offset=".35" stop-color="#15120d"/><stop offset=".7" stop-color="#0a0907"/><stop offset="1" stop-color="#2c261c"/></linearGradient>
+          <linearGradient id="nlCollar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a5410"/><stop offset=".45" stop-color="#FFE7A0"/><stop offset="1" stop-color="#8E6213"/></linearGradient>
         </defs>
-        <line x1="56" y1="56" x2="89" y2="89" stroke="url(#nlGold)" stroke-width="14" stroke-linecap="round"/>
-        <path d="M68.5 75.5 L75.5 68.5 M74.5 81.5 L81.5 74.5 M80.5 87.5 L87.5 80.5" stroke="#8A6A1F" stroke-width="2.2" stroke-linecap="round"/>
-        <circle cx="38" cy="38" r="27" fill="url(#nlGlass)"/>
-        <g stroke="#F2C94C" stroke-width="1.2" opacity=".45"><line x1="22" y1="27" x2="30" y2="20"/><line x1="30" y1="20" x2="46" y2="18"/><line x1="53" y1="47" x2="47" y2="56"/><line x1="47" y1="56" x2="31" y2="57"/></g>
-        <g fill="#F2C94C" opacity=".75"><circle cx="22" cy="27" r="1.7"/><circle cx="30" cy="20" r="1.5"/><circle cx="46" cy="18" r="1.7"/><circle cx="53" cy="47" r="1.5"/><circle cx="47" cy="56" r="1.7"/><circle cx="31" cy="57" r="1.4"/></g>
-        <path d="M26 39 L34 46 L50 30" fill="none" stroke="#F2C94C" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M19 31 A20 20 0 0 1 31 19" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".4"/>
-        <circle cx="38" cy="38" r="27" fill="none" stroke="url(#nlGold)" stroke-width="7.5"/>
+        <g transform="translate(61.5 61.5) rotate(-45)">
+          <rect x="-7" y="7" width="14" height="33" rx="7" fill="url(#nlGrip)"/>
+          <g stroke="#000" stroke-opacity=".45" stroke-width="1.1"><line x1="-6" y1="16" x2="6" y2="16"/><line x1="-6" y1="22" x2="6" y2="22"/><line x1="-6" y1="28" x2="6" y2="28"/></g>
+          <rect x="-8.5" y="-1" width="17" height="10" rx="2.5" fill="url(#nlCollar)"/>
+          <rect x="-8.5" y="2.5" width="17" height="1.4" fill="#5a3d08" opacity=".6"/>
+        </g>
+        <circle cx="40" cy="40" r="27.5" fill="url(#nlGlass2)"/>
+        <g stroke="#F2C94C" stroke-width="1.1" opacity=".42"><line x1="24" y1="29" x2="32" y2="22"/><line x1="32" y1="22" x2="48" y2="20"/><line x1="55" y1="49" x2="49" y2="58"/><line x1="49" y1="58" x2="33" y2="59"/></g>
+        <g fill="#F2C94C" opacity=".75"><circle cx="24" cy="29" r="1.6"/><circle cx="32" cy="22" r="1.4"/><circle cx="48" cy="20" r="1.6"/><circle cx="55" cy="49" r="1.4"/><circle cx="49" cy="58" r="1.6"/><circle cx="33" cy="59" r="1.3"/></g>
+        <path d="M28 41 L36 48 L52 32" fill="none" stroke="#F7D46A" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="40" cy="40" r="26" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="2.5"/>
+        <ellipse cx="31" cy="28" rx="12" ry="6.5" transform="rotate(-35 31 28)" fill="url(#nlShine)" opacity=".55"/>
+        <circle cx="53" cy="27" r="1.6" fill="#fff" opacity=".7"/>
+        <circle cx="40" cy="40" r="29.5" fill="none" stroke="url(#nlRim)" stroke-width="6.5"/>
+        <circle cx="40" cy="40" r="32.7" fill="none" stroke="#FFF1C2" stroke-opacity=".55" stroke-width=".8"/>
+        <circle cx="40" cy="40" r="26.3" fill="none" stroke="#4a3207" stroke-opacity=".8" stroke-width=".9"/>
       </svg>
       <span class="wordmark">Netto<span class="wm-gold">Lens</span></span>
     </div>
@@ -991,10 +1164,13 @@
       <a href="#tools">Tools</a>
       <a href="#scan">Scan</a>
       <a href="#trending">Trending</a>
+      <a href="#hotList" id="navLaunches">Launches</a>
       <a href="#watch">Watchlist</a>
+      <a href="#how" class="nav-more">How it works</a>
       <a href="#roadmap">Roadmap</a>
       <a href="#about">About</a>
       <a href="#feedback">Feedback</a>
+      <a href="https://github.com/NettoLens/nettolens" target="_blank" rel="noopener" class="nav-more">GitHub ↗</a>
     </div>
     <div class="nav-right">
       <a class="nav-cta" href="https://x.com/nettolens" target="_blank" rel="noopener">Follow on X</a>
@@ -1005,11 +1181,20 @@
   </nav>
 </div>
 
-<div class="ticker-bar">
+<div class="ticker-bar" aria-label="Live market data">
   <span class="ticker-live"><span class="live-dot"></span>LIVE</span>
-  <span>BTC <span class="val" id="tickerBTC">···</span></span>
-  <span>ETH <span class="val" id="tickerETH">···</span></span>
-  <span>Gas <span class="val" id="tickerGas">···</span></span>
+  <div class="ticker-viewport">
+    <div class="ticker-track">
+      <div class="ticker-set">
+        <div class="ticker-group">
+          <span class="ticker-item">BTC <span class="val" data-tk="btc">···</span></span><span class="sep">◆</span>
+          <span class="ticker-item">ETH <span class="val" data-tk="eth">···</span></span><span class="sep">◆</span>
+          <span class="ticker-item">Gas <span class="val" data-tk="gas">···</span></span><span class="sep">◆</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="ticker-toggle" id="tickerToggle" aria-label="Pause ticker">⏸</button>
 </div>
 
 <div class="status-banner">
@@ -1019,35 +1204,32 @@
 <div class="wrap">
 
   <section class="hero">
+    <div class="hero-main">
     <div class="hero-head">
       <h1>See the chain clearly.</h1>
       <p>Live tokens, safety scans, a watchlist and trade math for Robinhood Chain, in one place.</p>
     </div>
-    <div class="hero-left">
-      <div class="hot" id="hotList">
-        <div class="hot-head">
-          <div class="hot-title"><span class="hot-dot"></span>Live on <select id="hotChain" aria-label="Network">
-            <option value="robinhood">Robinhood Chain</option>
-            <option value="base">Base</option>
-            <option value="arbitrum">Arbitrum</option>
-            <option value="ethereum">Ethereum</option>
-          </select></div>
-          <div class="hot-tabs" id="hotTabs">
-            <button type="button" class="active" data-mode="trending">Trending</button>
-            <button type="button" data-mode="new">New</button>
-            <button type="button" data-mode="top">Top</button>
-          </div>
+    <div class="earth" id="earthStage">
+      <canvas id="earthCanvas" aria-label="A dotted globe; during a scan every finished check lands on it as a coloured light"></canvas>
+      <div class="hud" id="earthHud" aria-live="off">
+        <span class="hud-corner c-tl"></span><span class="hud-corner c-tr"></span><span class="hud-corner c-bl"></span><span class="hud-corner c-br"></span>
+        <div class="hud-panel hud-tl hud-idle" id="hudLive">
+          <div class="hud-hd"><span class="hud-dot"></span>ROBINHOOD CHAIN · LIVE</div>
+          <div class="hud-row"><span>Block</span><b id="hudBlock">—</b></div>
+          <div class="hud-row"><span>Gas</span><b id="hudGas">—</b></div>
+          <div class="hud-row"><span>New pools · 1h</span><b id="hudPools">—</b></div>
         </div>
-        <ol class="hot-rows" id="hotRows"><li class="hot-msg">Loading live tokens…</li></ol>
-        <div class="hot-foot">
-          <span id="hotUpdated"></span>
-          <a href="#trending">Search all tokens</a>
+        <div class="hud-panel hud-tr hud-idle" id="hudNew">
+          <div class="hud-hd">JUST LAUNCHED</div>
+          <ul class="hud-list" id="hudNewList"><li class="hud-muted">Loading…</li></ul>
+          <div class="hud-foot">tap one to scan it</div>
         </div>
+        <div class="hud-panel hud-tl hud-scan" data-g="contract"><div class="hud-hd">CONTRACT</div><div class="hud-n"><b>0</b>/<span>0</span></div><div class="hud-bar"><i></i></div></div>
+        <div class="hud-panel hud-tr hud-scan" data-g="holders"><div class="hud-hd">HOLDERS</div><div class="hud-n"><b>0</b>/<span>0</span></div><div class="hud-bar"><i></i></div></div>
+        <div class="hud-panel hud-bl hud-scan" data-g="market"><div class="hud-hd">MARKET</div><div class="hud-n"><b>0</b>/<span>0</span></div><div class="hud-bar"><i></i></div></div>
+        <div class="hud-panel hud-br hud-scan" data-g="deployer"><div class="hud-hd">DEPLOYER</div><div class="hud-n"><b>0</b>/<span>0</span></div><div class="hud-bar"><i></i></div></div>
       </div>
-      <button type="button" class="back-live" id="backLive">‹ Back to live tokens</button>
-      <div class="hero-graph side-graph" aria-hidden="true">
-        <svg id="liveGraph" viewBox="0 0 460 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"></svg>
-      </div>
+      <div class="earth-foot"><span id="earthCap">Watching the chain</span><button type="button" id="earthPause" aria-label="Pause the globe">❚❚</button></div>
     </div>
     <div class="hero-scan" id="scan">
       <div class="hero-scan-title">Run a real scan</div>
@@ -1094,6 +1276,7 @@
           <div class="result-top">
             <div class="result-token" id="resultToken">—</div>
           </div>
+          
           <div class="checks" id="checksList"></div>
           <div class="holder-viz" id="holderViz">
             <div>
@@ -1114,8 +1297,59 @@
             <div class="score-breakdown" id="scoreBreakdown"></div>
           </div>
           <div class="investigation-summary" id="investigationSummary"></div>
+          <div class="share-box" id="shareBox" aria-live="polite">
+            <div class="sb-hd">SHARE THIS RESULT</div>
+            <img id="shareImg" alt="Share card for this scan: token, score and the main findings">
+            <div class="sb-btns">
+              <button type="button" class="sb-btn sb-main" id="sbNative" hidden>Share…</button>
+              <button type="button" class="sb-btn sb-main" id="sbX">Post on X</button>
+              <button type="button" class="sb-btn" id="sbSave">Save image</button>
+              <button type="button" class="sb-btn" id="sbCopy">Copy image</button>
+              <button type="button" class="sb-btn" id="sbLink">Copy link</button>
+            </div>
+            <div class="sb-msg" id="sbMsg"></div>
+          </div>
+          <div class="lens-notes" id="lensNotes">
+            <div class="ln-hd">LENS NOTES <span id="lnTag"></span></div>
+            <div class="ln-body" id="lnBody"></div>
+            <div class="ln-chips" id="lnChips">
+              <button type="button" class="ln-chip" data-q="trust">Can I trust it?</button>
+              <button type="button" class="ln-chip" data-q="why">Why this score?</button>
+              <button type="button" class="ln-chip" data-q="holders">Who holds the most?</button>
+              <button type="button" class="ln-chip" data-q="scope">What wasn't checked?</button>
+            </div>
+            <div class="ln-answer" id="lnAnswer"></div>
+            <p class="ln-fine">Written from this scan's own results. No price predictions and no "safe" verdicts. Not financial advice.</p>
+          </div>
         </div>
         <div class="scan-hint" style="max-width: 640px;">"Sell restrictions: none found" means the verified source doesn't contain the common restriction code we scan for (blacklists, trading switches, sell taxes) — it is not a guaranteed-safe-to-sell result. A real honeypot test would simulate an actual sell transaction, which this tool doesn't do yet. "LP burned" only counts liquidity sent to a burn address; liquidity held in locker contracts isn't recognized yet.</div>
+      </div>
+    </div>
+    </div>
+    <div class="hero-left" id="heroListSlot">
+      <div class="hot" id="hotList">
+        <div class="hot-head">
+          <div class="hot-title"><span class="hot-dot"></span>Live on <select id="hotChain" aria-label="Network">
+            <option value="robinhood">Robinhood Chain</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="ethereum">Ethereum</option>
+          </select></div>
+          <div class="hot-tabs" id="hotTabs">
+            <button type="button" class="active" data-mode="trending">Trending</button>
+            <button type="button" data-mode="new">New</button>
+            <button type="button" data-mode="top">Top</button>
+          </div>
+        </div>
+        <ol class="hot-rows" id="hotRows"><li class="hot-msg">Loading live tokens…</li></ol>
+        <div class="hot-foot">
+          <span id="hotUpdated"></span>
+          <a href="#trending">Search all tokens</a>
+        </div>
+      </div>
+      <button type="button" class="back-live" id="backLive">‹ Back to live tokens</button>
+      <div class="hero-graph side-graph" aria-hidden="true">
+        <svg id="liveGraph" viewBox="0 0 460 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
     </div>
   </section>
@@ -1330,7 +1564,7 @@
     <div class="section-head">
       <span class="kicker">WHO'S BUILDING THIS</span>
       <h2>One builder, shipping in the open.</h2>
-      <p>NettoLens is an independent, early-stage project — not a company, not a team of ten. Every check on this page reads real on-chain data; nothing here is a mockup or a promise. Progress, bugs, and fixes all happen in public, on <a href="https://x.com/nettolens" target="_blank" rel="noopener" style="color: var(--accent);">X</a>.</p>
+      <p>NettoLens is an independent, early-stage project — not a company, not a team of ten. Every check on this page reads real on-chain data; nothing here is a mockup or a promise. Progress, bugs, and fixes all happen in public, on <a href="https://x.com/nettolens" target="_blank" rel="noopener" style="color: var(--accent);">X</a>, and the full source code is open on <a href="https://github.com/NettoLens/nettolens" target="_blank" rel="noopener" style="color: var(--accent);">GitHub</a>.</p>
     </div>
   </section>
 
@@ -1439,6 +1673,9 @@
       <a href="https://x.com/nettolens" target="_blank" rel="noopener" aria-label="NettoLens on X" style="display:flex; align-items:center; color: var(--text-dim);">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-7.1l-5.5-7.2L4.3 22H1.2l8.1-9.3L1 2h7.3l5 6.6L18.9 2Zm-1.2 18h1.9L7.4 4H5.4l12.3 16Z"/></svg>
       </a>
+      <a href="https://github.com/NettoLens/nettolens" target="_blank" rel="noopener" aria-label="NettoLens source code on GitHub" style="display:flex; align-items:center; color: var(--text-dim);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.62 1.58.23 2.75.11 3.04.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+      </a>
     </div>
     <div class="disclaimer">Not financial advice. Always verify independently before trading.</div>
   </footer>
@@ -1522,6 +1759,48 @@ async function rpcCall(rpcUrl, method, params) {
   const json = await res.json();
   if (json.error) throw new Error(json.error.message);
   return json.result;
+}
+
+// Launchpad bonding curves (Pons-style): the unsold supply sits in a curve contract until the token
+// "graduates" into a DEX pool. We recognise one by asking it for its graduation threshold and the
+// amount raised so far; a contract that answers both is a curve, not an unknown team contract.
+async function probeBondingCurve(rpcUrl, explorerBase, curve, token) {
+  try {
+    const [t, r] = await Promise.all([
+      rpcCall(rpcUrl, 'eth_call', [{ to: curve, data: '0x8b0bc501' }, 'latest']),   // graduationThreshold()
+      rpcCall(rpcUrl, 'eth_call', [{ to: curve, data: '0x4f1f58fd' }, 'latest']),   // realQuoteReserve()
+    ]);
+    if (!t || !r || t === '0x' || r === '0x' || t.length < 66 || r.length < 66) return null;
+    const threshold = BigInt(t.slice(0, 66)), raised = BigInt(r.slice(0, 66));
+    if (threshold === 0n) return null;
+    const progress = Math.min(1, Number(raised * 10000n / threshold) / 10000);
+    // What it's priced in: the curve also holds the quote asset (a token like USDG, or plain ETH)
+    let symbol = null, decimals = null;
+    try {
+      const res = await fetch(`${explorerBase}/api/v2/addresses/${curve}/token-balances`);
+      if (res.ok) {
+        const list = await res.json();
+        const q = (Array.isArray(list) ? list : []).find(b => b.token && b.token.address &&
+          (b.token.address.hash || b.token.address).toLowerCase() !== token.toLowerCase() && Number(b.value) > 0);
+        if (q) { symbol = q.token.symbol || null; decimals = Number(q.token.decimals); }
+      }
+    } catch (e) { /* the progress figure still stands on its own */ }
+    if (symbol == null) { symbol = 'ETH'; decimals = 18; }
+    const human = v => Number(v) / Math.pow(10, Number.isFinite(decimals) ? decimals : 18);
+    // What every buy and sell pays: the base trade fee plus the creator's own tax (both fixed at launch)
+    let feeBps = null, taxBps = null;
+    try {
+      const [f, x] = await Promise.all([
+        rpcCall(rpcUrl, 'eth_call', [{ to: curve, data: '0x24a9d853' }, 'latest']),   // feeBps()
+        rpcCall(rpcUrl, 'eth_call', [{ to: curve, data: '0xc1bb8901' }, 'latest']),   // creatorTaxBps()
+      ]);
+      if (f && f.length >= 66) feeBps = Number(BigInt(f.slice(0, 66)));
+      if (x && x.length >= 66) taxBps = Number(BigInt(x.slice(0, 66)));
+      if (!(feeBps >= 0 && feeBps <= 10000)) feeBps = null;
+      if (!(taxBps >= 0 && taxBps <= 10000)) taxBps = null;
+    } catch (e) { /* older curves may not expose these */ }
+    return { hash: curve.toLowerCase(), progress, raised: human(raised), threshold: human(threshold), symbol, feeBps, taxBps };
+  } catch (e) { return null; }
 }
 
 async function checkOwner(rpcUrl, address) {
@@ -1724,29 +2003,34 @@ function fmtUsd(n) {
 // Peak is taken from candle CLOSES (not wicks), so one spiky trade can't exaggerate the drop
 async function checkPriceHistory(chainKey, poolAddress, tokenAddress) {
   if (!poolAddress) return { available: false, debug: 'no pool address' };
-  for (const net of (GT_NETWORKS[chainKey] || [])) {
-    try {
-      const base = `https://api.geckoterminal.com/api/v2/networks/${net}/pools/${poolAddress}/ohlcv`;
-      const q = `aggregate=1&currency=usd&token=${tokenAddress}`;
-      const responses = await Promise.all([
-        fetch(`${base}/hour?limit=1000&${q}`).catch(() => null),
-        fetch(`${base}/day?limit=365&${q}`).catch(() => null),
-      ]);
-      const candles = [];
-      for (const r of responses) {
-        if (!r || !r.ok) continue;
-        const j = await r.json();
-        const list = j && j.data && j.data.attributes && j.data.attributes.ohlcv_list;
-        if (Array.isArray(list)) candles.push(...list);
-      }
-      if (candles.length === 0) continue;
-      const closes = candles.map(c => Number(c[4])).filter(v => Number.isFinite(v) && v > 0);
-      if (closes.length === 0) continue;
-      const latest = candles.reduce((a, c) => (c[0] > a[0] ? c : a));
-      return { available: true, peakClose: Math.max(...closes), lastClose: Number(latest[4]) };
-    } catch (e) { /* try next network id */ }
+  const nets = GT_NETWORKS[chainKey] || [];
+  for (const net of nets) {
+    // The free price API sometimes doesn't answer on the first try, so each network gets a second attempt
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
+      try {
+        const base = `https://api.geckoterminal.com/api/v2/networks/${net}/pools/${poolAddress}/ohlcv`;
+        const q = `aggregate=1&currency=usd&token=${tokenAddress}`;
+        const responses = await Promise.all([
+          fetch(`${base}/hour?limit=1000&${q}`).catch(() => null),
+          fetch(`${base}/day?limit=365&${q}`).catch(() => null),
+        ]);
+        const candles = [];
+        for (const r of responses) {
+          if (!r || !r.ok) continue;
+          const j = await r.json();
+          const list = j && j.data && j.data.attributes && j.data.attributes.ohlcv_list;
+          if (Array.isArray(list)) candles.push(...list);
+        }
+        if (candles.length === 0) continue;
+        const closes = candles.map(c => Number(c[4])).filter(v => Number.isFinite(v) && v > 0);
+        if (closes.length === 0) continue;
+        const latest = candles.reduce((a, c) => (c[0] > a[0] ? c : a));
+        return { available: true, peakClose: Math.max(...closes), lastClose: Number(latest[4]) };
+      } catch (e) { /* try again, then the next network id */ }
+    }
   }
-  return { available: false, debug: 'no price history for this chain' };
+  return { available: false, debug: nets.length ? "price history didn't load (the data source didn't answer)" : 'no price history source for this chain' };
 }
 
 async function checkLiquidity(chainKey, explorerBase, address) {
@@ -1776,7 +2060,7 @@ async function checkLiquidity(chainKey, explorerBase, address) {
 
 // Holder analysis that separates real wallets from pools, burn addresses and contracts,
 // so a DEX pool or burned supply is never counted as a "whale".
-async function checkHolders(explorerBase, address, poolAddresses = []) {
+async function checkHolders(explorerBase, address, poolAddresses = [], probeCurve = null) {
   const res = await fetch(`${explorerBase}/api/v2/tokens/${address}/holders`);
   if (!res.ok) return { available: false };
   const data = await res.json();
@@ -1795,6 +2079,17 @@ async function checkHolders(explorerBase, address, poolAddresses = []) {
 
   const pools = new Set(poolAddresses.map(a => a.toLowerCase()));
   const self = address.toLowerCase();
+  // Big unnamed contracts among the top holders may be a launchpad's bonding curve: ask them
+  const curves = new Map();
+  if (probeCurve && totalSupply) {
+    const cands = items.filter(h => {
+      const hh = ((h.address && (h.address.hash || h.address)) || '').toLowerCase();
+      return h.address && h.address.is_contract === true && hh !== self && !pools.has(hh) && !DEAD_ADDRESSES.includes(hh) &&
+        Number(h.value || 0) / totalSupply >= 0.05;
+    }).slice(0, 3);
+    const found = await Promise.all(cands.map(h => probeCurve((h.address.hash || h.address)).catch(() => null)));
+    found.forEach(c => { if (c) curves.set(c.hash, c); });
+  }
   // Uniswap v4 keeps every pool's tokens inside one PoolManager contract, so v4 pools never
   // show up as separate pair addresses — recognise the DEX infrastructure by its verified name.
   const POOL_RE = /(poolmanager|uniswapv[234]|pancakev[23]|^pool$|pair$|pool$|vault$)/i;
@@ -1807,6 +2102,10 @@ async function checkHolders(explorerBase, address, poolAddresses = []) {
     const v = Number(h.value || 0);
     if (DEAD_ADDRESSES.includes(hash)) burned += v;
     else if (pools.has(hash)) inPools += v;
+    else if (curves.has(hash)) {
+      inLaunch += v;
+      contracts.push({ hash, v, name: 'Bonding curve', launch: true });
+    }
     else if (h.address && h.address.is_contract === true && h.address.name && POOL_RE.test(h.address.name)) inPools += v;
     else if (h.address && h.address.is_contract === true && h.address.name && LAUNCH_RE.test(h.address.name)) {
       inLaunch += v;
@@ -1848,7 +2147,9 @@ async function checkHolders(explorerBase, address, poolAddresses = []) {
     poolPct: circ ? (inPools / circ) * 100 : 0,
     contractPct: circ ? (inContracts / circ) * 100 : 0,
     launchPct: circ ? (inLaunch / circ) * 100 : 0,
-    topContract: contracts.length && circ ? { ...contracts[0], pct: (contracts[0].v / circ) * 100 } : null,
+    // the largest contract we could NOT identify (curves are explained on their own)
+    topContract: (() => { const c = contracts.find(x => !x.launch); return c && circ ? { ...c, pct: (c.v / circ) * 100 } : null; })(),
+    curve: (() => { const c = contracts.find(x => x.launch && curves.has(x.hash)); return c && circ ? { ...curves.get(c.hash), pct: (c.v / circ) * 100 } : null; })(),
     burnedPct: totalSupply ? (burned / totalSupply) * 100 : 0,
     top10Addresses: top10.map(w => w.hash),
     top10Percentages,
@@ -1994,14 +2295,20 @@ async function checkFundingCluster(explorerBase, creatorAddress, holderAddresses
 
 async function checkProxy(rpcUrl, address) {
   try {
-    // EIP-1967 implementation slot: keccak256("eip1967.proxy.implementation") - 1
-    const slot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bb";
-    const result = await rpcCall(rpcUrl, "eth_getStorageAt", [address, slot, "latest"]);
-    if (!result) return { available: false };
-    const isEmpty = /^0x0*$/.test(result);
-    if (isEmpty) return { available: true, isProxy: false };
-    const implementation = "0x" + result.slice(-40);
-    return { available: true, isProxy: true, implementation };
+    // EIP-1967 implementation slot: keccak256("eip1967.proxy.implementation") - 1  (must be 64 hex digits)
+    const slot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+    const stored = await rpcCall(rpcUrl, "eth_getStorageAt", [address, slot, "latest"]).catch(() => null);
+    if (stored && !/^0x0*$/.test(stored)) {
+      return { available: true, isProxy: true, upgradeable: true, kind: 'eip1967', implementation: "0x" + stored.slice(-40) };
+    }
+    // EIP-1167 minimal proxy (clone): fixed bytecode forwarding to one immutable implementation
+    const code = await rpcCall(rpcUrl, "eth_getCode", [address, "latest"]).catch(() => null);
+    const clone = code && /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3/i.exec(code);
+    if (clone) {
+      return { available: true, isProxy: true, upgradeable: false, kind: 'eip1167', implementation: "0x" + clone[1].toLowerCase() };
+    }
+    if (!stored || !code) return { available: false };
+    return { available: true, isProxy: false };
   } catch (e) {
     return { available: false };
   }
@@ -2322,6 +2629,494 @@ function warmScan(chain, address) {
   urls.forEach(u => { fetch(u).catch(() => {}); });
 }
 
+
+// ---------- FOCUS LENS: a lens brings the chain into focus as real checks finish, then becomes the score ring ----------
+const FocusLens = (() => {
+  // ---------- THE EARTH: a dotted globe that turns on page load; during a scan every finished check
+  //            lands on it as a light coloured by its result (green clean, amber caution, red risk) ----------
+  const TAU = Math.PI * 2, DEG = Math.PI / 180;
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const cssVar = (n, f) => (getComputedStyle(document.documentElement).getPropertyValue(n).trim() || f);
+  const reduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const scoreColor = s => s >= 70 ? cssVar('--safe', '#5FC98D') : s >= 45 ? cssVar('--warn', '#E8A33D') : cssVar('--danger', '#E85D5D');
+  const grade = s => s >= 70 ? 'Clear' : s >= 45 ? 'Hazy' : 'Blurred';
+  const LAND = [
+    // North America
+    [[-168,66],[-162,70],[-156,71.3],[-140,69.6],[-128,70],[-115,68.5],[-100,68],[-95,71.5],[-85,69.5],[-81,64],[-90,60],[-94,58.5],[-88,56],[-82,55],[-79,52],[-78,58],[-71,61],[-65,58.5],[-61,55],[-56,52],[-60,47.5],[-66,45],[-70,42],[-74,40.5],[-76,37],[-75.5,35],[-81,31],[-80,26],[-81.5,25],[-83,29],[-89,30],[-94,29.5],[-97,27.5],[-97.5,22],[-95,18.5],[-91,18.5],[-90,21],[-87,21.5],[-88,16],[-83.5,15],[-83.5,10.5],[-79.5,9.3],[-77.5,8],[-80,7.3],[-83,8.3],[-86,11.5],[-92,14.3],[-96,15.8],[-105,19.8],[-109,24],[-112,28.5],[-115,31.5],[-117,33],[-121,35],[-124,40],[-124,46],[-123.5,49],[-128,51],[-133,55],[-140,59.5],[-148,61],[-152,59],[-158,57],[-164,55],[-158,58.5],[-162,60],[-166,62],[-164,64.5],[-168,66]],
+    // Greenland
+    [[-73,78],[-60,82],[-40,83.5],[-22,82],[-18,77],[-22,72],[-26,68],[-35,65.5],[-43,60],[-50,63],[-54,67],[-56,72],[-66,76],[-73,78]],
+    // Canadian arctic islands
+    [[-80,73.5],[-72,71],[-62,67],[-65,63],[-73,64],[-80,68],[-80,73.5]],
+    [[-90,77],[-75,79],[-62,82.3],[-80,83],[-92,81],[-90,77]],
+    [[-125,72],[-115,76.5],[-100,77.5],[-95,74],[-105,72.5],[-117,70.5],[-125,72]],
+    // Caribbean
+    [[-85,22],[-80,23.2],[-74,20],[-78,20],[-85,22]],
+    [[-74.5,18.4],[-68.5,18.5],[-70,19.8],[-73,20],[-74.5,18.4]],
+    // South America
+    [[-80,9],[-75,11],[-71.5,12.3],[-63,10.8],[-60,8],[-52,5],[-50,0],[-44,-2.5],[-35,-5],[-35,-9],[-39,-14],[-40,-22],[-48,-26],[-53,-34],[-58,-38.5],[-62,-39],[-65,-42],[-67,-46],[-69,-51],[-68,-55],[-72,-54],[-75,-50],[-74,-44],[-73,-37],[-71.5,-30],[-70.3,-18],[-76,-14],[-81,-6],[-80,-2],[-78.8,2],[-77.5,7],[-80,9]],
+    // Eurasia
+    [[-9,37],[-9.3,43],[-2,43.5],[-1.3,46],[-4.5,48],[2,51],[5,53],[8,54],[8.5,57],[10.5,57.6],[10.7,59.3],[6,58],[5,62],[10,64],[14,67],[18,70],[25,71],[31,70],[40,67],[44,68.3],[54,68.5],[60,69],[68,72],[73,73],[80,73.5],[87,75],[100,77],[113,74],[128,73],[140,72.5],[150,71.5],[160,70],[170,70],[180,68.5],[180,65],[178,64],[172,60],[163,59.5],[163,56],[157,51],[156,57],[160,61],[152,59.5],[143,59.3],[137,54],[140,48],[136,43],[131,42.6],[129,40],[129.4,36],[126.5,34.5],[126.5,37.5],[125,39.5],[121.5,39],[122.5,37],[119,35],[121.5,31],[122,28],[119,25],[116,23],[111,21.5],[108,21.6],[106,19],[109,13],[109,11],[105,8.6],[103,10.3],[100.5,13.4],[99.2,10],[100.3,6.5],[103.4,3],[104,1.3],[101,3],[98.3,8],[98,16],[94.3,16.5],[92,22],[89,21.8],[86.5,20],[80.3,15.8],[80,10],[77.3,8],[73,16],[72.6,21],[69,22.8],[66.5,25],[62,25],[57,25.5],[56.5,27],[51,28],[48.5,30],[50,26.5],[51.5,24.5],[54,24],[56,26],[59.5,22.5],[57,19],[52,17],[45,13],[43.3,12.7],[42.5,16],[39,21.5],[35,28],[32.8,31],[35,33],[36,36],[30,36.3],[27.3,37],[26.3,40],[29,41],[31.5,41.2],[36,41.6],[41,41],[41.5,42],[38.5,44.5],[33.5,44.5],[30.5,46],[28.6,44],[28,42],[24,40.7],[23,37.5],[21.3,37.5],[19.5,41],[19,42.5],[13.6,45.6],[12.4,44.2],[16,41.6],[18.5,40.1],[16,38],[15.6,40],[12,42],[10,44],[7,43.6],[3,43.2],[3.2,42],[0,39.6],[-0.6,37.6],[-2,36.7],[-5.3,36],[-6.5,37],[-9,37]],
+    // Africa
+    [[-17,21],[-16,24],[-13,27.6],[-10,30],[-9.5,33],[-6,35.8],[-2,35.1],[3,36.8],[10,37.3],[11,35],[10.2,33.5],[15,32.3],[19,30.4],[20,32],[23,32.8],[29,31],[32.3,31.3],[32.6,30],[34,27],[37,22],[38.5,18],[42,14],[43.4,12],[51.2,11.9],[51,10.5],[48,4],[42,-1],[40,-3],[39,-7],[40.4,-10.5],[40.6,-15],[35,-19.5],[35.5,-23],[32.6,-26],[32,-29],[27,-33.6],[22,-34.1],[18.4,-34.2],[17.5,-30],[15,-26],[14.5,-22],[11.8,-17],[12.2,-13],[13.5,-11],[12,-5],[9,-1],[9.6,3],[8.5,4.5],[5,6],[1,6],[-2,5],[-7.5,4.4],[-11,7],[-13,9.2],[-15,11.5],[-17,14.6],[-17,21]],
+    [[44,-25],[47,-25],[50.3,-16],[49.3,-12],[44,-16],[43.3,-22],[44,-25]],
+    // Islands of Europe
+    [[-5.7,50],[1.4,51.1],[1.7,52.7],[0,53.6],[-1.5,55],[-2,57],[-1.8,57.6],[-3.4,58.6],[-5,58.6],[-6.2,57],[-5.5,55.5],[-3,54.6],[-4.6,53.3],[-4.3,52],[-5.3,51.7],[-5.7,50]],
+    [[-10,51.6],[-6,52],[-6,54],[-7.5,55.3],[-10,54],[-10,51.6]],
+    [[-24,65.5],[-18,66.5],[-13.6,65],[-18,63.4],[-22,63.8],[-24,65.5]],
+    [[11,78],[17,80],[27,80],[20,77],[11,78]],
+    [[52,71],[58,75],[69,77],[60,73],[52,71]],
+    // East Asia islands
+    [[130,31],[131.6,34],[135,33.6],[140,35],[141,38.3],[141.5,41.5],[143.3,42],[145.5,43.4],[141.6,45.5],[140,42.3],[139.6,40],[137,37],[133,35.5],[130,33.6],[130,31]],
+    [[142,46],[143.6,49],[143,54],[142,51],[142,46]],
+    [[120,22],[121.9,25],[121.4,22.2],[120,22]],
+    [[120,18.5],[122.3,18.5],[124,13],[126.5,7],[125.5,5.8],[122,7],[123,10],[120,14],[120,18.5]],
+    [[80,6],[82,7.5],[80.2,9.8],[79.8,8],[80,6]],
+    // Indonesia & New Guinea
+    [[95,5.6],[98,4],[104,-1],[106,-6],[102,-4],[100,-1],[96.5,3],[95,5.6]],
+    [[105,-6],[114,-7],[114.5,-8.7],[106,-7.6],[105,-6]],
+    [[109,1.5],[111,2],[114,4.5],[117,7],[119,5],[118,1],[116,-4],[110,-3],[109,1.5]],
+    [[119,-5.5],[120.5,-2],[121,1],[125,1.5],[123,-1],[122,-5],[119,-5.5]],
+    [[131,-1],[138,-1.5],[145,-4],[150.5,-10.5],[147,-10],[143,-9],[138,-8],[132,-4],[131,-1]],
+    // Australia & New Zealand
+    [[114,-22],[114,-26],[115,-34],[118,-35],[123,-34],[126,-32.3],[131,-31.5],[135,-34.6],[138,-35],[140,-38],[146,-39],[150,-37.5],[153,-32],[153.6,-28],[153,-25],[149,-21],[146,-19],[145.4,-15],[142.8,-10.7],[141.6,-13],[141.6,-17],[139,-17.3],[136,-15],[136.6,-12],[132,-11.5],[130,-13],[128,-15],[125,-14.5],[122,-17],[119,-20],[114,-22]],
+    [[145,-40.7],[148.3,-41],[147.5,-43.4],[145.5,-43],[145,-40.7]],
+    [[172.6,-34.5],[178.4,-37.6],[175,-41.6],[172,-41],[170,-46],[166.5,-46],[168,-44],[172.6,-34.5]],
+    // Antarctic peninsula
+    [[-68,-63],[-56,-63],[-62,-66],[-66,-72],[-75,-72],[-68,-63]],
+  ];
+  const WATER = [
+    [[11,55],[14,54],[20,55],[21,57],[24,59.5],[22,60.5],[21.3,63],[25,65],[22,65.8],[17,62],[19,60],[16.5,57],[12.5,56],[11,55]],   // Baltic
+    [[47,45],[52,47],[54,41],[53,37],[50,37],[49,40],[47,43]],                                                                         // Caspian
+  ];
+  const inPoly = (x, y, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    const xi = P[i][0], yi = P[i][1], xj = P[j][0], yj = P[j][1];
+    if (((yi > y) !== (yj > y)) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+  const isLand = (lon, lat) => lat < -71 || (LAND.some(P => inPoly(lon, lat, P)) && !WATER.some(P => inPoly(lon, lat, P)));
+
+  const STEP = 1.3, dots = []; let row = 0;
+  for (let lat = -86; lat <= 86; lat += STEP, row++) {
+    const n = Math.max(1, Math.round(360 * Math.cos(lat * DEG) / STEP));
+    for (let k = 0; k < n; k++) {
+      const lon = -180 + (k + (row % 2 ? 0.5 : 0)) * 360 / n, land = isLand(lon, lat);
+      if (!land && k % 2) continue;
+      dots.push(Math.cos(lat * DEG) * Math.sin(lon * DEG), Math.sin(lat * DEG), Math.cos(lat * DEG) * Math.cos(lon * DEG), land ? 1 : 0);
+    }
+  }
+  const D = new Float32Array(dots), ND = D.length / 4, landPts = [], PX = new Float32Array(ND * 3);
+  for (let i = 0; i < ND; i++) if (D[i * 4 + 3]) landPts.push(i);
+  const unit = i => [D[i * 4], D[i * 4 + 1], D[i * 4 + 2]];
+
+  const sprites = {};
+  function spriteOf(hex) {
+    if (sprites[hex]) return sprites[hex];
+    const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+    const r = parseInt(hex.slice(1, 3), 16), gg = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, `rgba(${r},${gg},${b},.95)`); gr.addColorStop(0.45, `rgba(${r},${gg},${b},.35)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return (sprites[hex] = c);
+  }
+  const glow = document.createElement('canvas'); glow.width = glow.height = 64;
+  (() => { const g = glow.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,236,170,1)'); gr.addColorStop(0.3, 'rgba(242,201,76,.65)'); gr.addColorStop(1, 'rgba(242,201,76,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64); })();
+  const STATUS = { ok: { c: '#5FC98D', mark: '\u2713' }, warn: { c: '#E8A33D', mark: '!' }, risk: { c: '#FF5A5A', mark: '\u2715' } };
+
+  let cvs = null, ctx = null, cap = null, stage = null, pauseBtn = null;
+  let Wp = 0, Hp = 0, R = 200, cx = 0, cy = 0, rot = 0.6, visible = true, paused = false, last = 0;
+  const tilt = 0.32, ct = Math.cos(tilt), st = Math.sin(tilt);
+  function proj(x, y, z) {
+    const cr = Math.cos(rot), sr = Math.sin(rot), x1 = x * cr + z * sr, z1 = -x * sr + z * cr;
+    return [cx + x1 * R, cy - (y * ct - z1 * st) * R, y * st + z1 * ct];
+  }
+  const slerp = (a, b, t) => { const d = Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])), w = Math.acos(d);
+    if (w < 1e-4) return a.slice(); const s = Math.sin(w), p = Math.sin((1 - t) * w) / s, q = Math.sin(t * w) / s;
+    return [a[0] * p + b[0] * q, a[1] * p + b[1] * q, a[2] * p + b[2] * q]; };
+
+  // the first six glide all the time; the other eight join while a scan is running
+  const RUN_LATS = [-38, -18, 4, 22, 40, 56, -48, -28, 12, 32,   -8, 48, -2, 62, -55, 16, 26, -22, 8, 44];
+  const runners = RUN_LATS.map((la, i) => ({ lat: la * DEG, wob: (i % 2 ? 1 : -1) * (0.12 + (i % 6) * 0.03),
+    sp: (0.00022 + (i % 6) * 0.00003) * (i % 3 ? 1 : -1) * (i < 10 ? 1 : 1.6), ph: i * 1.3, extra: i >= 10 }));   // ten always, ten more during a scan
+  const runnerAt = (r, t, back) => { const a = r.ph + (t - back) * r.sp, lat = r.lat + Math.sin(a * 2) * r.wob;
+    return [Math.cos(lat) * Math.sin(a), Math.sin(lat), Math.cos(lat) * Math.cos(a)]; };
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const NODES = [], EDGES = [];
+  for (let k = 0; k < 150; k++) NODES.push(unit(landPts[(rnd() * landPts.length) | 0]));   // "cities" joined by a gold mesh
+  for (let i = 0; i < NODES.length; i++) { let c = 0;
+    for (let j = i + 1; j < NODES.length && c < 3; j++) { const A = NODES[i], B = NODES[j];
+      const d = A[0] * B[0] + A[1] * B[1] + A[2] * B[2]; if (d > 0.93 && d < 0.995) { EDGES.push([i, j, rnd() * TAU]); c++; } } }
+  const BEACON_COLORS = ['#5AA8FF', '#FF5A5A', '#B48CFF', '#5FE0D0', '#FFFFFF', '#F2C94C', '#5AA8FF', '#FF7AB6'];
+  const BEACONS = Array.from({ length: 110 }, (_, i) => ({ v: unit(landPts[(rnd() * landPts.length) | 0]), ph: rnd() * 6000,
+    per: i < 50 ? 1500 + rnd() * 2400 : 650 + rnd() * 850, col: BEACON_COLORS[i % BEACON_COLORS.length], extra: i >= 50 }));
+  let boost = 0;                                                     // 0 at rest, 1 while a scan is running
+  const DUST = Array.from({ length: 110 }, () => { const a = rnd() * TAU, z = rnd() * 1.6 - 0.8, r = Math.sqrt(1 - z * z), h = 1.12 + rnd() * 0.5;
+    return { v: [r * Math.cos(a) * h, z * h, r * Math.sin(a) * h], s: 0.6 + rnd() * 1.3, ph: rnd() * TAU, gold: rnd() < 0.45 }; });
+  const ORBITS = [
+    // rs: how fast the ring turns (rad/s); ia, iw: how far and how fast it tips back and forth
+    { inc: 1.18, roll: -0.42, r: 1.34, sp: 0.00035, col: '242,201,76', dash: true, sats: 3, rs: 0.05, ia: 0.08, iw: 0.21, ph: 0.0 },
+    { inc: 0.52, roll: 0.42, r: 1.22, sp: -0.00027, col: '95,224,208', dash: false, sats: 1, rs: -0.09, ia: 0.16, iw: 0.33, ph: 1.7 },
+    { inc: 0.74, roll: -0.78, r: 1.28, sp: 0.00021, col: '95,224,208', dash: false, sats: 1, rs: 0.07, ia: 0.13, iw: 0.27, ph: 3.1 },
+    { inc: 0.36, roll: -0.12, r: 1.16, sp: 0.00031, col: '242,201,76', dash: false, sats: 1, rs: -0.06, ia: 0.10, iw: 0.40, ph: 4.4 },
+  ];
+  let orbClock = 0;                                                  // the rings' own clock: faster during a scan
+  function moveOrbits() { for (const O of ORBITS) { O._roll = O.roll + O.rs * orbClock; O._inc = O.inc + O.ia * Math.sin(orbClock * O.iw + O.ph); } }
+  moveOrbits();
+  const orbitPt = (O, th) => { const x0 = Math.cos(th) * O.r, z0 = Math.sin(th) * O.r, y = -z0 * Math.sin(O._inc), z = z0 * Math.cos(O._inc);
+    return [cx + (x0 * Math.cos(O._roll) - y * Math.sin(O._roll)) * R, cy + (x0 * Math.sin(O._roll) + y * Math.cos(O._roll)) * R, z]; };
+
+  const arcs = [], pings = [], marks = [], tagQueue = [], tags = []; let lastTag = null, idleArc = 0, lastTagAt = 0;
+  function frontLand() {
+    for (let k = 0; k < 40; k++) { const i = landPts[(Math.random() * landPts.length) | 0]; if (proj(...unit(i))[2] > 0.25) return unit(i); }
+    return unit(landPts[(Math.random() * landPts.length) | 0]);
+  }
+  const spawnArc = (t, strong, label, stt) => arcs.push({ a: frontLand(), b: frontLand(), t0: t, dur: strong ? 1100 : 1700, strong, label, st: stt });
+
+  // scan state, driven by the real scanner
+  const scan = { on: false, done: false, n: 0, total: 1, p: 0, prog: 0, score: 0, shown: 0, t0: 0, doneT: 0 };
+
+  function size() {
+    if (!stage) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    Wp = stage.clientWidth; Hp = stage.clientHeight;
+    cvs.width = Math.round(Wp * dpr); cvs.height = Math.round(Hp * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const phone = window.innerWidth <= 900;
+    R = Math.max(100, phone ? Math.min(Wp, Hp) * 0.40 : Math.min(Wp * 0.40, (Hp / 2 - 30) / 1.18)); cx = Wp / 2; cy = Hp / 2 - (phone ? 0 : 12);
+  }
+
+  function drawOrbit(t, front, A) {
+    for (const O of ORBITS) {
+      const path = new Path2D(); let on = false;
+      for (let k = 0; k <= 140; k++) { const q = orbitPt(O, k / 140 * TAU);
+        if ((q[2] >= 0) === front) { on ? path.lineTo(q[0], q[1]) : path.moveTo(q[0], q[1]); on = true; } else on = false; }
+      const a = (front ? 1 : 0.35) * A;
+      if (O.dash) { ctx.setLineDash([2, 6]); ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${O.col},${(0.38 * a).toFixed(3)})`; ctx.stroke(path); ctx.setLineDash([]); }
+      else {                                                   // a soft glowing band with a bright core
+        ctx.lineWidth = 4; ctx.strokeStyle = `rgba(${O.col},${(0.10 * a).toFixed(3)})`; ctx.stroke(path);
+        ctx.lineWidth = 1.1; ctx.strokeStyle = `rgba(${O.col},${(0.62 * a).toFixed(3)})`; ctx.stroke(path);
+      }
+      for (let k = 0; k < O.sats; k++) { const q = orbitPt(O, t * O.sp + k * TAU / O.sats); if ((q[2] >= 0) !== front) continue;
+        const sz = 9 * (R / 260); ctx.globalAlpha = a; ctx.drawImage(O.col === '242,201,76' ? glow : spriteOf('#5FE0D0'), q[0] - sz, q[1] - sz, sz * 2, sz * 2); ctx.globalAlpha = 1; }
+    }
+  }
+  function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+  function draw(t) {
+    const k8 = R / 260, mono = cssVar('--font-mono', 'monospace'), disp = cssVar('--font-display', "'Space Grotesk', sans-serif");
+    ctx.clearRect(0, 0, Wp, Hp);
+    let g = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 1.6);
+    g.addColorStop(0, 'rgba(95,224,208,.09)'); g.addColorStop(0.6, 'rgba(242,201,76,.04)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, Wp, Hp);
+    const dim = scan.done ? 1 - 0.55 * Math.min(1, (t - scan.doneT) / 900) : 1;
+    {                                                                       // a glass plate it floats over
+      const ry = cy + R * 1.07;
+      ctx.save(); ctx.translate(cx, ry); ctx.scale(1, 0.14);
+      g = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 1.0);
+      g.addColorStop(0, 'rgba(95,224,208,.22)'); g.addColorStop(0.45, 'rgba(242,201,76,.08)'); g.addColorStop(1, 'rgba(95,224,208,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 1.0, 0, TAU); ctx.fill();
+      ctx.lineWidth = 1.2 / 0.14 * 0.6; ctx.strokeStyle = 'rgba(95,224,208,.22)'; ctx.beginPath(); ctx.arc(0, 0, R * 0.78, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+    for (const d of DUST) { const p = proj(...d.v), tw = 0.5 + 0.5 * Math.sin(t * 0.0018 + d.ph);
+      if (p[2] < 0 && Math.hypot(p[0] - cx, p[1] - cy) < R) continue;
+      ctx.globalAlpha = Math.min(1, (0.18 + 0.5 * tw) * (1 + 0.7 * boost)) * dim * (p[2] < 0 ? 0.5 : 1); ctx.fillStyle = d.gold ? '#F2C94C' : '#C9D3EA';
+      ctx.beginPath(); ctx.arc(p[0], p[1], d.s * k8, 0, TAU); ctx.fill(); }
+    ctx.globalAlpha = 1;
+
+    const cr = Math.cos(rot), sr = Math.sin(rot);
+    for (let i = 0; i < ND; i++) {                                         // where every dot lands this frame
+      const x = D[i * 4], y = D[i * 4 + 1], z = D[i * 4 + 2], x1 = x * cr + z * sr, z1 = -x * sr + z * cr;
+      PX[i * 3] = cx + x1 * R; PX[i * 3 + 1] = cy - (y * ct - z1 * st) * R; PX[i * 3 + 2] = y * st + z1 * ct;
+    }
+    ctx.fillStyle = '#5FE0D0';                                              // teal: the ocean grid and the far side
+    for (let i = 0; i < ND; i++) {
+      const z2 = PX[i * 3 + 2], land = D[i * 4 + 3]; if (z2 < 0 && !land) continue;
+      if (land && z2 >= 0) continue;
+      const a = z2 < 0 ? 0.09 * (1 + z2) : 0.04 + 0.10 * z2, sz = 0.9;
+      ctx.globalAlpha = a * dim; ctx.fillRect(PX[i * 3] - sz / 2, PX[i * 3 + 1] - sz / 2, sz, sz);
+    }
+    {                                                                       // teal latitude / longitude cage
+      const back = new Path2D(), front = new Path2D();
+      const P3 = (x, y, z) => { const x1 = x * cr + z * sr, z1 = -x * sr + z * cr; return [cx + x1 * R, cy - (y * ct - z1 * st) * R, y * st + z1 * ct]; };
+      const curve = fn => { let p0 = null; for (let k = 0; k <= 64; k++) { const q = fn(k / 64 * TAU); if (p0) { const P = p0[2] + q[2] > 0 ? front : back; P.moveTo(p0[0], p0[1]); P.lineTo(q[0], q[1]); } p0 = q; } };
+      [-60, -30, 0, 30, 60].forEach(la => { const r = Math.cos(la * DEG), y = Math.sin(la * DEG); curve(a => P3(Math.cos(a) * r, y, Math.sin(a) * r)); });
+      for (let m = 0; m < 6; m++) { const lo = m / 6 * Math.PI; curve(a => P3(Math.cos(a) * Math.cos(lo), Math.sin(a), Math.cos(a) * Math.sin(lo))); }
+      ctx.globalAlpha = 1; ctx.lineWidth = 0.8;
+      ctx.strokeStyle = 'rgba(95,224,208,' + (0.07 * dim).toFixed(3) + ')'; ctx.stroke(back);
+      ctx.strokeStyle = 'rgba(95,224,208,' + (0.26 * dim).toFixed(3) + ')'; ctx.stroke(front);
+    }
+    ctx.fillStyle = '#F7D374';                                              // gold: the continents facing us
+    for (let i = 0; i < ND; i++) {
+      const z2 = PX[i * 3 + 2]; if (z2 < 0 || !D[i * 4 + 3]) continue;
+      const a = 0.32 + 0.66 * Math.pow(z2, 0.6), sz = (1.25 + 0.75 * z2) * Math.max(0.85, k8);
+      ctx.globalAlpha = a * dim; ctx.fillRect(PX[i * 3] - sz / 2, PX[i * 3 + 1] - sz / 2, sz, sz);
+    }
+    ctx.globalAlpha = 1;
+    g = ctx.createRadialGradient(cx, cy, R * 0.84, cx, cy, R * 1.1);         // a teal holographic rim
+    g.addColorStop(0, 'rgba(95,224,208,0)'); g.addColorStop(0.72, 'rgba(95,224,208,' + (0.20 * dim).toFixed(3) + ')'); g.addColorStop(1, 'rgba(95,224,208,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.1, 0, TAU); ctx.fill();
+
+    const lightA = scan.done ? Math.max(0.25, dim) : 1;
+    {                                                                       // connected shell
+      const H = 1.05, P = NODES.map(v => proj(v[0] * H, v[1] * H, v[2] * H));
+      ctx.lineWidth = 0.8;
+      for (const [i, j, ph] of EDGES) { const a = P[i], b = P[j]; if (a[2] < 0 || b[2] < 0) continue;
+        const k = Math.min(a[2], b[2]);
+        ctx.strokeStyle = 'rgba(242,201,76,' + (0.34 * k * dim).toFixed(3) + ')'; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        if (ph < 2.2) { const f = (t * 0.00025 + ph) % 1;
+          ctx.globalAlpha = 0.8 * k * dim; ctx.fillStyle = '#FFE08A'; ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, 1.3 * k8 + 0.4, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; } }
+      for (const p of P) if (p[2] > 0) { ctx.globalAlpha = 0.75 * p[2] * dim; ctx.fillStyle = '#FFF1C4'; ctx.fillRect(p[0] - 1.2, p[1] - 1.2, 2.4, 2.4); }
+      ctx.globalAlpha = 1;
+    }
+    for (const b of BEACONS) { if (b.extra && boost < 0.02) continue; const p = proj(...b.v); if (p[2] < 0.1) continue;      // many-coloured blinking lights
+      const ph = ((t + b.ph) % b.per) / b.per, k = ph < 0.1 ? ph / 0.1 : ph < 0.5 ? 1 - (ph - 0.1) / 0.4 : 0;
+      if (k <= 0.01) continue;
+      const sz = (7 + 12 * k) * k8;
+      ctx.globalAlpha = Math.min(1, k * 1.3) * Math.min(1, p[2] * 1.6) * lightA * (b.extra ? boost : 1); ctx.drawImage(spriteOf(b.col), p[0] - sz, p[1] - sz, sz * 2, sz * 2);
+      ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(p[0], p[1], 1.8 * k8 + 0.6, 0, TAU); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    // (orbit rings removed on request; drawOrbit kept in case they come back)
+    for (const m of marks) { const p = proj(...m.v); if (p[2] < 0.05) continue;          // findings stay lit
+      const k = 0.55 + 0.45 * Math.sin(t * 0.006), sz = (m.st === 'risk' ? 10 : 8) * (0.8 + 0.4 * k) * k8;
+      ctx.globalAlpha = p[2] * Math.max(0.6, lightA); ctx.drawImage(spriteOf(STATUS[m.st].c), p[0] - sz, p[1] - sz, sz * 2, sz * 2); }
+    ctx.globalAlpha = 1;
+    for (const r of runners) {                                                     // gold lights gliding sideways
+      const ra = r.extra ? boost : 1; if (ra < 0.02) continue;
+      for (let k = 0; k < 22; k++) {
+        const p = proj(...runnerAt(r, t, k * 55)); if (p[2] < 0.02) continue;
+        const f = 1 - k / 22, edge = Math.min(1, p[2] * 4), sz = (k ? 2.6 * f + 0.6 : 7.5) * k8;
+        ctx.globalAlpha = (k ? 0.75 * f * f : 1) * edge * lightA * ra;
+        if (k) { ctx.fillStyle = '#F2C94C'; ctx.beginPath(); ctx.arc(p[0], p[1], sz, 0, TAU); ctx.fill(); }
+        else ctx.drawImage(glow, p[0] - sz * 2, p[1] - sz * 2, sz * 4, sz * 4);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    if ((!scan.on || !scan.done) && t - idleArc > (boost > 0.5 ? 300 : 950)) { spawnArc(t, false); idleArc = t; }   // leaps come thick and fast during a scan
+    for (let i = arcs.length - 1; i >= 0; i--) {                                 // leaps between places
+      const A = arcs[i], k = (t - A.t0) / A.dur;
+      if (k >= 1.6) { arcs.splice(i, 1); continue; }
+      if (k >= 1 && !A.landed) { A.landed = true; const pg = { v: A.b, t0: t, strong: A.strong, label: A.label, st: A.st }; pings.push(pg); if (A.label) tagQueue.push({ v: A.b, label: A.label, st: A.st }); }
+      const head = Math.min(1, k), tail = Math.max(0, k - 0.45), pts = [];
+      for (let s = 0; s <= 24; s++) { const u = s / 24, v = slerp(A.a, A.b, u), h = 1 + 0.22 * Math.sin(Math.PI * u); pts.push([...proj(v[0] * h, v[1] * h, v[2] * h), u]); }
+      ctx.lineWidth = A.strong ? 1.6 : 1.1;
+      for (let s = 1; s < pts.length; s++) { const P = pts[s - 1], Q = pts[s];
+        if (Q[3] < tail || Q[3] > head || (P[2] < 0 && Q[2] < 0 && Math.hypot(Q[0] - cx, Q[1] - cy) < R)) continue;
+        const f = (Q[3] - tail) / Math.max(0.01, head - tail);
+        ctx.strokeStyle = 'rgba(242,201,76,' + ((A.strong ? 0.9 : 0.55) * f * lightA).toFixed(3) + ')';
+        ctx.beginPath(); ctx.moveTo(P[0], P[1]); ctx.lineTo(Q[0], Q[1]); ctx.stroke(); }
+      if (k < 1) { const v = slerp(A.a, A.b, k), h = 1 + 0.22 * Math.sin(Math.PI * k), p = proj(v[0] * h, v[1] * h, v[2] * h), sz = (A.strong ? 16 : 11) * k8;
+        ctx.globalAlpha = lightA; ctx.drawImage(glow, p[0] - sz, p[1] - sz, sz * 2, sz * 2); ctx.globalAlpha = 1; }
+    }
+    for (let i = pings.length - 1; i >= 0; i--) {                                // where a check lands: a ring in its result colour, and its name
+      const P = pings[i], age = (t - P.t0) / (P.label ? 2400 : 1400);
+      if (age >= 1) { if (P.st === 'risk' || P.st === 'warn') marks.push({ v: P.v, st: P.st }); pings.splice(i, 1); continue; }
+      const p = proj(...P.v); if (p[2] < 0.05) continue;
+      const pc = P.st ? STATUS[P.st].c : '#F2C94C', rr = parseInt(pc.slice(1, 3), 16), g2 = parseInt(pc.slice(3, 5), 16), bb = parseInt(pc.slice(5, 7), 16);
+      ctx.strokeStyle = `rgba(${rr},${g2},${bb},` + ((1 - age) * 0.9 * lightA).toFixed(3) + ')'; ctx.lineWidth = P.st === 'risk' ? 2 : 1.4;
+      const rad = (4 + age * 26) * k8;
+      ctx.beginPath(); ctx.ellipse(p[0], p[1], rad, rad * Math.max(0.3, p[2]), 0, 0, TAU); ctx.stroke();
+      const sz = (P.strong ? 9 : 6) * (1 - age * 0.5) * k8;
+      ctx.globalAlpha = (1 - age) * lightA; ctx.drawImage(P.st ? spriteOf(pc) : glow, p[0] - sz, p[1] - sz, sz * 2, sz * 2); ctx.globalAlpha = 1;
+    }
+
+    {                                                                              // the check names, readable: queued, two at most
+      const busy = tagQueue.length > 3, life = busy ? 1300 : 1900;
+      for (let i = tags.length - 1; i >= 0; i--) if (t - tags[i].t0 > tags[i].life) tags.splice(i, 1);
+      if (tagQueue.length && tags.length < 2 && t - lastTagAt > (busy ? 450 : 700)) { const q = tagQueue.shift(); q.t0 = t; q.life = life; tags.push(q); lastTagAt = t; }
+      const fs = Math.max(13, Math.round(R * 0.068)), placed = [];
+      ctx.font = '600 ' + fs + 'px ' + mono;
+      for (const T of tags) {
+        const p = proj(...T.v); if (p[2] < 0.02) continue;
+        const age = (t - T.t0) / T.life, a = Math.min(1, age * 6, (1 - age) * 4);
+        const pc = T.st ? STATUS[T.st].c : '#F2C94C', txt = (T.st ? STATUS[T.st].mark : '\u2713') + ' ' + T.label;
+        const w = ctx.measureText(txt).width + fs * 1.2, h = fs * 1.9;
+        let x = Math.min(Wp - w - 6, Math.max(6, p[0] + 10)), y = Math.max(4, p[1] - h - 8 - age * 10);
+        for (const o of placed) if (x < o.x + o.w && x + w > o.x && y < o.y + o.h + 6 && y + h + 6 > o.y) y = o.y + o.h + 6;   // never on top of each other
+        placed.push({ x, y, w, h });
+        ctx.globalAlpha = Math.max(0, a);
+        ctx.fillStyle = 'rgba(8,11,20,.92)'; roundRect(x, y, w, h, h / 2); ctx.fill();
+        ctx.strokeStyle = pc; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = pc; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x + fs * 0.6, y + h / 2 + 0.5);
+        ctx.strokeStyle = pc; ctx.globalAlpha = Math.max(0, a) * 0.5; ctx.lineWidth = 1;            // a thin leader line to the spot
+        ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(Math.max(x, Math.min(p[0], x + w)), y + h); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    if (scan.on) {                                                                 // progress ring, then the score ring
+      const RR = R * 1.16; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(3, R * 0.022);
+      ctx.strokeStyle = 'rgba(242,201,76,.14)'; ctx.beginPath(); ctx.arc(cx, cy, RR, 0, TAU); ctx.stroke();
+      let frac = scan.prog, col = '#F2C94C';
+      if (scan.done) { const k = Math.min(1, (t - scan.doneT) / 1200), e = 1 - Math.pow(1 - k, 3); frac = e * scan.score / 100; col = scoreColor(scan.score); scan.shown = Math.round(e * scan.score); }
+      if (frac > 0.003) { ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.strokeStyle = col;
+        ctx.beginPath(); ctx.arc(cx, cy, RR, -Math.PI / 2, -Math.PI / 2 + TAU * frac); ctx.stroke(); ctx.restore(); }
+      ctx.lineCap = 'butt';
+    }
+    if (scan.done) {
+      const k = Math.min(1, (t - scan.doneT) / 600), col = scoreColor(scan.score);
+      ctx.globalAlpha = k; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = col; ctx.shadowBlur = 22; ctx.fillStyle = col;
+      ctx.font = '600 ' + Math.round(R * 0.5) + 'px ' + disp; ctx.fillText(String(scan.shown), cx, cy - R * 0.04);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#C9D0E0';
+      ctx.font = '500 ' + Math.max(11, Math.round(R * 0.07)) + 'px ' + mono; ctx.fillText('Trust score · ' + grade(scan.score), cx, cy + R * 0.33);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function frame(t) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (t - last) / 1000 || 0.016); last = t;
+    if (paused || !visible || document.hidden || !stage) return;                 // nothing to draw off screen
+    rot += dt * (scan.on && !scan.done ? 0.26 : 0.12) * (reduced() ? 0.5 : 1);
+    { const target = scan.on && !scan.done ? 1 : 0; boost += (target - boost) * (1 - Math.exp(-dt * (target ? 3 : 0.7))); }
+    orbClock += dt * (1 + 1.6 * boost) * (reduced() ? 0.5 : 1); moveOrbits();
+    scan.prog += (scan.p - scan.prog) * (1 - Math.exp(-dt * 6));
+    draw(t);
+  }
+  const setCap = html => { if (cap) cap.innerHTML = html; };
+
+  function init() {
+    stage = document.getElementById('earthStage'); cvs = document.getElementById('earthCanvas');
+    cap = document.getElementById('earthCap'); pauseBtn = document.getElementById('earthPause');
+    if (!stage || !cvs) return;
+    ctx = cvs.getContext('2d'); size();
+    window.addEventListener('resize', size);
+    if ('ResizeObserver' in window) new ResizeObserver(size).observe(stage);
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(stage);
+    if (pauseBtn) pauseBtn.addEventListener('click', () => {
+      paused = !paused; pauseBtn.textContent = paused ? '\u25B6' : '\u275A\u275A';
+      pauseBtn.setAttribute('aria-label', paused ? 'Play the globe' : 'Pause the globe');
+    });
+    requestAnimationFrame(frame);
+  }
+  init();
+
+  return {
+    start() {
+      arcs.length = 0; pings.length = 0; marks.length = 0; lastTag = null; tagQueue.length = 0; tags.length = 0;
+      Object.assign(scan, { on: true, done: false, n: 0, p: 0, prog: 0, shown: 0, t0: performance.now(),
+        total: Math.max(1, document.querySelectorAll('#checksList .check-row:not(.role-row)').length) });
+      setCap('<b>SCANNING</b>');
+      if (window.EarthHud) EarthHud.start(); else try { EarthHud.start(); } catch (e) {}
+    },
+    tick(label, rowId) {
+      if (!scan.on || scan.done) return;
+      const val = document.getElementById('val-' + rowId);
+      const st = val && val.querySelector('.bad') ? 'risk' : val && val.querySelector('.caution') ? 'warn' : 'ok';
+      scan.n++; scan.p = Math.min(0.97, scan.n / scan.total);
+      spawnArc(performance.now(), true, String(label || ''), st);
+      try { EarthHud.tick(rowId, st); } catch (e) {}
+      const esc = String(label || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      setCap('<b>' + String(scan.n).padStart(2, '0') + '/' + String(scan.total).padStart(2, '0') + '</b> <span style="color:' + STATUS[st].c + '">' + STATUS[st].mark + '</span> ' + esc);
+    },
+    finish(score) {
+      if (!scan.on) return;
+      Object.assign(scan, { done: true, doneT: performance.now(), p: 1, score: clamp(Math.round(score), 0, 100) });
+      setCap('<b>' + grade(scan.score).toUpperCase() + '</b> · ' + scan.n + ' checks · ' + ((scan.doneT - scan.t0) / 1000).toFixed(1) + 's');
+    },
+    cancel() { Object.assign(scan, { on: false, done: false, p: 0, prog: 0 }); marks.length = 0; setCap('Watching the chain'); try { EarthHud.cancel(); } catch (e) {} },
+  };
+})();
+
+
+// ---------- LENS NOTES: the scan, read back in plain words. Every sentence comes from this scan's results ----------
+const LensNotes = (() => {
+  const reduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const el = id => document.getElementById(id);
+  const label = s => s >= 70 ? ['Clear', 'var(--safe)'] : s >= 45 ? ['Hazy', 'var(--warn)'] : ['Blurred', 'var(--danger)'];
+  // a result row as plain text, without its leading ✓ / ⚠ / ✗ mark
+  const row = id => { const v = el('val-' + id); const t = v ? v.textContent.replace(/\s+/g, ' ').trim() : ''; return t.replace(/^[✓✗⚠!·•\s]+/, ''); };
+  const usable = t => t && t !== '—' && !/unavailable|couldn.t|not available/i.test(t);
+  let data = null, job = 0, wired = false, startTimer = 0;
+
+  // parts: [{ html, cls }] — typed two characters at a time, then swapped for the final markup
+  function type(target, parts) {
+    const my = ++job;
+    target.innerHTML = '';
+    if (reduced()) { parts.forEach(p => { const n = document.createElement('p'); if (p.cls) n.className = p.cls; n.innerHTML = p.html; target.appendChild(n); }); return; }
+    let i = 0;
+    const next = () => {
+      if (my !== job || i >= parts.length) return;
+      const p = parts[i++], n = document.createElement('p');
+      if (p.cls) n.className = p.cls;
+      target.appendChild(n);
+      const tmp = document.createElement('div'); tmp.innerHTML = p.html;
+      const full = tmp.textContent; let k = 0;
+      const step = () => {
+        if (my !== job) return;
+        k = Math.min(full.length, k + 2);
+        n.innerHTML = k >= full.length ? p.html : esc(full.slice(0, k)) + '<span class="ln-cursor"></span>';
+        if (k < full.length) setTimeout(step, 14); else setTimeout(next, 120);
+      };
+      step();
+    };
+    next();
+  }
+
+  function answer(q, asked) {
+    if (!data) return;
+    const d = data, bad = d.signals.filter(s => s.level === 'bad'), minor = d.signals.filter(s => s.level !== 'bad');
+    const sign = n => (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n);
+    let html;
+    if (q === 'trust') {
+      html = "No scan can tell you that, and we won't pretend to. " + (d.signals.length
+        ? 'This one found ' + bad.length + ' serious and ' + minor.length + ' minor signal' + (minor.length === 1 ? '' : 's') + (bad.length ? ', the biggest being: ' + esc(bad[0].text) : '') + '.'
+        : 'None of the checks we run flagged anything, which is a clean read, not a promise.') + ' Look at what we can\u2019t see before you decide.';
+    } else if (q === 'why') {
+      const areas = [['Contract', d.cat.contract], ['Holders', d.cat.holders], ['Liquidity', d.cat.liquidity], ['Market', d.cat.market], ['Deployer', d.cat.deployer]];
+      const raw = 40 + areas.reduce((t, a) => t + a[1], 0);
+      html = 'Every token starts at 40 and earns or loses points as the checks come in. By area: ' + areas.map(a => a[0] + ' ' + sign(a[1])).join(', ') + '. That adds up to ' + raw + (raw > 100 || raw < 0 ? ', and scores are kept between 0 and 100' : '') + '.'
+        + (d.capNote ? ' The score was then capped at ' + esc(d.capNote) + '.' : '')
+        + (d.ceilingPenalty ? ' Scores never go above ' + d.maxScore + ', so ' + d.ceilingPenalty + ' point' + (d.ceilingPenalty === 1 ? '' : 's') + ' were left out.' : '')
+        + ' Result: ' + d.score + '.';
+    } else if (q === 'holders') {
+      const parts = [];
+      if (usable(row('holders'))) parts.push('Holders: ' + esc(row('holders')) + '.');
+      if (usable(row('top10'))) parts.push('Top 10 wallets: ' + esc(row('top10')) + '.');
+      if (usable(row('contracts'))) parts.push('Pools, burn and contracts: ' + esc(row('contracts')) + '.');
+      html = parts.length ? parts.join(' ') : "Holder data wasn't available for this token, so we can't say who holds the most.";
+    } else {
+      html = 'Not covered by this scan: shared funders between holders, fresh wallets, sniper or bundled buys, and a real sell transaction.'
+        + (d.unavailable ? ' Also, ' + d.unavailable + ' of our own check' + (d.unavailable === 1 ? '' : 's') + " couldn't run on this token, and a missing result is not a pass." : '');
+    }
+    const box = el('lnAnswer');
+    type(box, [{ html: '<span class="ln-q">› ' + esc(asked) + '</span>' }, { html }]);
+  }
+
+  function wire() {
+    if (wired) return;
+    wired = true;
+    el('lnChips').addEventListener('click', e => { const b = e.target.closest('.ln-chip'); if (b) answer(b.dataset.q, b.textContent); });
+  }
+
+  return {
+    show(d) {
+      const box = el('lensNotes'); if (!box) return;
+      wire(); data = d;
+      const [lab, col] = label(d.score);
+      el('lnTag').textContent = d.name + ' · ' + lab.toLowerCase() + ' ' + d.score;
+      el('lnAnswer').innerHTML = ''; el('lnBody').innerHTML = '';
+      const facts = [['Holders', row('holders')], ['Top 10', row('top10')], ['Liquidity', row('liqusd')]].filter(f => usable(f[1]));
+      const ordered = d.signals.filter(s => s.level === 'bad').concat(d.signals.filter(s => s.level !== 'bad')).slice(0, 3);
+      const parts = [{ html: '<b>' + esc(d.name) + '</b> on ' + esc(d.chain) + ': the lens reads <b style="color:' + col + '">' + lab + ' · ' + d.score + '/100</b>.' }];
+      if (facts.length) parts.push({ html: facts.map(f => f[0] + ': ' + esc(f[1])).join(' · ') + '.' });
+      if (ordered.length) ordered.forEach(s => parts.push({ html: esc(s.text) + '.', cls: s.level === 'bad' ? 'bad' : 'caution' }));
+      else parts.push({ html: 'None of the checks we run flagged anything.' });
+      if (d.signals.length > ordered.length) parts.push({ html: (d.signals.length - ordered.length) + ' more in the summary above.' });
+      box.classList.add('visible');
+      clearTimeout(startTimer);
+      // start writing just after the lens locks, so the two moments don't compete
+      startTimer = setTimeout(() => { type(el('lnBody'), parts); if (typeof followElement === 'function') followElement(box, 40); }, reduced() ? 0 : 900);
+    },
+    reset() {
+      job++; data = null; clearTimeout(startTimer);
+      const box = el('lensNotes'); if (!box) return;
+      box.classList.remove('visible'); el('lnBody').innerHTML = ''; el('lnAnswer').innerHTML = ''; el('lnTag').textContent = '';
+    },
+  };
+})();
+
 function pendingRow(id, label) {
   const row = document.createElement('div');
   row.className = 'check-row';
@@ -2394,6 +3189,8 @@ async function resolveRow(id, valueHtml, delayAfter = 160) {
   const val = document.getElementById(`val-${id}`);
   val.innerHTML = valueHtml;
   val.classList.add('pop-in');
+  const lensLabel = val.closest('.check-row') && val.closest('.check-row').querySelector('.check-label');
+  FocusLens.tick(lensLabel ? lensLabel.textContent : '', id);
   followElement(val.closest('.check-row'));
   updateLiveGraph();
   await sleep(delayAfter);
@@ -2504,12 +3301,16 @@ async function runScan() {
     pendingRow('cluster', 'Wallet cluster (creator-funded)');
     setGraphCalm(false);
     updateLiveGraph();
+    LensNotes.reset(); ShareCard.reset();
+    FocusLens.start();
 
+    // No token gets a perfect score: this scan can't see everything (funders, fresh wallets, snipers, real sell test)
+    const MAX_SCORE = 85;
     let score = 40; // tokens earn trust, they don't start with it
     const cat = { contract: 0, holders: 0, liquidity: 0, market: 0, deployer: 0 };
     // Hard caps: some findings mean the score can't be high no matter how clean the contract looks
     const caps = [];
-    const capAt = (value, reason) => caps.push({ value, reason });
+    const capAt = (value, reason, level = 'bad') => caps.push({ value, reason, level });
     let liqUsd = null;
     const signals = []; // notable findings for the investigation summary
 
@@ -2533,14 +3334,38 @@ async function runScan() {
     } catch (e) {
       verificationStatus = 'unknown'; // network hiccup, not a real "no"
     }
+    // Proxies keep their logic in a separate implementation contract, so that is what has to be verified and read
+    const proxyLookup = await checkProxy(chain.rpc, address);
+    let analysisData = contractData;   // source we scan for mint / sell-restriction code
+    let implNote = '';
+    if (proxyLookup.available && proxyLookup.isProxy && proxyLookup.implementation) {
+      let implData = null, implStatus = 'unknown';
+      try {
+        const implRes = await fetch(`${chain.explorer}/api/v2/smart-contracts/${proxyLookup.implementation}`);
+        if (implRes.status === 404) implStatus = 'not_verified';
+        else if (implRes.ok) {
+          implData = await implRes.json();
+          implStatus = implData && implData.is_verified ? 'verified' : 'not_verified';
+        }
+      } catch (e) { /* stays 'unknown', never a false "No" */ }
+      const shortImpl = `${proxyLookup.implementation.slice(0, 6)}...${proxyLookup.implementation.slice(-4)}`;
+      implNote = proxyLookup.kind === 'eip1167' ? ` · clone of ${shortImpl}` : ` · implementation ${shortImpl}`;
+      verificationStatus = implStatus;
+      if (implStatus === 'verified') {
+        analysisData = implData;
+        contractData = Object.assign({}, implData, { creator_address_hash: contractData && contractData.creator_address_hash });
+      } else {
+        analysisData = null;   // a proxy's own source says nothing about its logic
+      }
+    }
     if (verificationStatus === 'verified') { score += 20; cat.contract += 20; }
     if (verificationStatus === 'not_verified') {
-      signals.push({ text: 'Contract source is not verified', level: 'bad' });
+      signals.push({ text: implNote ? 'Contract logic (implementation) is not verified' : 'Contract source is not verified', level: 'bad' });
       capAt(50, 'contract source is not verified');
     }
     await resolveRow('verified',
-      verificationStatus === 'verified' ? '<span class="ok">✓ Yes</span>' :
-      verificationStatus === 'not_verified' ? '<span class="bad">✕ No</span>' :
+      verificationStatus === 'verified' ? `<span class="ok">✓ Yes${implNote}</span>` :
+      verificationStatus === 'not_verified' ? `<span class="bad">✕ No${implNote}</span>` :
       na('couldn\'t confirm, try again'));
 
     // Step 2 — ownership
@@ -2589,7 +3414,7 @@ async function runScan() {
       }
       await resolveRow('mint', `<span class="caution">⚠ Minter set: ${who}</span>`);
     } else {
-      const mintInfo = checkMintFunction(contractData);
+      const mintInfo = checkMintFunction(analysisData);
       if (mintInfo.available && mintInfo.hasMint) { score -= 5; cat.contract -= 5; signals.push({ text: 'A mint function is present in the source', level: 'caution' }); }
       await resolveRow('mint', mintInfo.available
         ? (mintInfo.hasMint ? '<span class="caution">⚠ Mint function in source</span>' : '<span class="ok">✓ Not found</span>')
@@ -2599,7 +3424,7 @@ async function runScan() {
     // Step 5 — honeypot heuristics
     // Restriction code (blacklist, trading switch, sell tax...) is only dangerous if someone can still use it.
     // 'active' = an owner or admin still holds control, 'off' = renounced, 'unknown' = couldn't tell.
-    const honeypotInfo = checkHoneypotHeuristics(contractData);
+    const honeypotInfo = checkHoneypotHeuristics(analysisData);
     const flagList = honeypotInfo.available ? honeypotInfo.flags : [];
     let controlState = 'unknown';
     if (ownerInfo.supported) controlState = ownerInfo.renounced ? 'off' : 'active';
@@ -2633,11 +3458,13 @@ async function runScan() {
       : na('needs verified source'));
 
     // Step 6 — upgradeable / proxy detection (EIP-1967)
-    const proxyInfo = await checkProxy(chain.rpc, address);
-    if (proxyInfo.available && proxyInfo.isProxy) { score -= 12; cat.contract -= 12; signals.push({ text: 'Contract logic is upgradeable (proxy pattern)', level: 'caution' }); }
+    const proxyInfo = proxyLookup;
+    if (proxyInfo.available && proxyInfo.isProxy && proxyInfo.upgradeable) { score -= 12; cat.contract -= 12; signals.push({ text: 'Contract logic is upgradeable (proxy pattern)', level: 'caution' }); }
     await resolveRow('proxy', proxyInfo.available
       ? (proxyInfo.isProxy
-          ? `<span class="caution">⚠ Yes — logic can be changed (${proxyInfo.implementation.slice(0,6)}...${proxyInfo.implementation.slice(-4)})</span>`
+          ? (proxyInfo.upgradeable
+              ? `<span class="caution">⚠ Yes — logic can be changed (${proxyInfo.implementation.slice(0,6)}...${proxyInfo.implementation.slice(-4)})</span>`
+              : `<span class="ok">✓ No — fixed clone of ${proxyInfo.implementation.slice(0,6)}...${proxyInfo.implementation.slice(-4)}</span>`)
           : '<span class="ok">✓ No — fixed logic</span>')
       : na('unavailable'));
 
@@ -2694,11 +3521,13 @@ async function runScan() {
     // it is still shown in its own section further down.
     const liq = await checkLiquidity(selectedChain, chain.explorer, address);
     const poolAddrs = (liq.available && liq.pairs) ? liq.pairs.map(p => p.pairAddress).filter(Boolean) : [];
-    const holderInfo = await checkHolders(chain.explorer, address, poolAddrs);
+    const holderInfo = await checkHolders(chain.explorer, address, poolAddrs,
+      h => probeBondingCurve(chain.rpc, chain.explorer, h, address));
+    const curve = holderInfo.available ? holderInfo.curve : null;
     if (holderInfo.available) {
       await resolveRow('holders', holderInfo.holder_count
-        ? `<span>${holderInfo.holder_count.toLocaleString('en-US')} holders${holderInfo.symbol ? ' · ' + holderInfo.symbol : ''}</span>`
-        : `<span>${holderInfo.symbol || '—'}</span>`, 260);
+        ? `<span>${holderInfo.holder_count.toLocaleString('en-US')} holders${holderInfo.symbol ? ' · ' + escHtml(holderInfo.symbol) : ''}</span>`
+        : `<span>${escHtml(holderInfo.symbol) || '—'}</span>`, 260);
       const conc = Number(holderInfo.top10_concentration_pct);
       // A "healthy" spread across a handful of wallets means little, so positive points scale with holder count
       const hc = Number(holderInfo.holder_count) || 0;
@@ -2710,22 +3539,27 @@ async function runScan() {
       else if (conc < 50) { const pts = Math.round(5 * holderWeight); score += pts; cat.holders += pts; }
       else { score -= 15; cat.holders -= 15; signals.push({ text: `Top 10 wallets control ${holderInfo.top10_concentration_pct}% of supply (pools and burned tokens excluded)`, level: 'bad' }); }
       const cls = conc < 30 ? 'ok' : conc < 50 ? 'caution' : 'bad';
-      await resolveRow('top10', `<span class="${cls}">${conc < 30 ? '✓' : '⚠'} ${holderInfo.top10_concentration_pct}% of supply</span>`, 260);
+      await resolveRow('top10', `<span class="${cls}">${conc < 30 ? '✓' : '⚠'} ${holderInfo.top10_concentration_pct}% of supply (wallets only)</span>`, 260);
 
       // Pools and burned supply are neutral; unidentified contracts are shown, not hidden
       const parts = [];
       if (holderInfo.poolPct >= 0.1) parts.push(`${holderInfo.poolPct.toFixed(1)}% in DEX pools`);
       if (holderInfo.burnedPct >= 0.1) parts.push(`${holderInfo.burnedPct.toFixed(1)}% burned`);
-      if (holderInfo.launchPct >= 0.1) parts.push(`${holderInfo.launchPct.toFixed(1)}% in launchpad contract`);
+      if (holderInfo.launchPct >= 0.1) parts.push(`${holderInfo.launchPct.toFixed(1)}% in ${holderInfo.curve ? 'bonding curve (unsold)' : 'launchpad contract'}`);
       if (holderInfo.contractPct >= 0.1) parts.push(`${holderInfo.contractPct.toFixed(1)}% in other contracts`);
       // Unidentified contracts: we can't tell a bonding curve from a team multisig,
       // so the penalty grows with their share instead of treating them as safe.
-      if (holderInfo.launchPct >= 30) signals.push({ text: `${holderInfo.launchPct.toFixed(0)}% of supply is still inside the launchpad contract — normal before a token "graduates", but liquidity and holder numbers will change`, level: 'caution' });
+      if (holderInfo.launchPct >= 30) signals.push({ text: holderInfo.curve
+        ? `${holderInfo.launchPct.toFixed(0)}% of supply is still unsold on the launchpad's bonding curve (${(holderInfo.curve.progress * 100).toFixed(0)}% of the way to graduation). Normal at this stage, but liquidity and holder numbers will change a lot`
+        : `${holderInfo.launchPct.toFixed(0)}% of supply is still inside the launchpad contract — normal before a token "graduates", but liquidity and holder numbers will change`, level: 'caution' });
       const cp = holderInfo.contractPct;
       const cpen = cp >= 80 ? 15 : cp >= 50 ? 10 : cp >= 30 ? 5 : 0;
+      const tcTop = (holderInfo.topContract && holderInfo.topContract.pct >= 5) ? holderInfo.topContract : null;
+      const tcIsSelf = !!(tcTop && tcTop.hash && tcTop.hash.toLowerCase() === address.toLowerCase());
+      const tcLabel = tcTop ? (tcIsSelf ? "the token's own contract" : (tcTop.name ? escHtml(tcTop.name) : 'an unnamed contract')) : '';
       if (cpen) {
         score -= cpen; cat.holders -= cpen;
-        signals.push({ text: `${cp.toFixed(0)}% of supply sits in contracts we can't identify (launcher, vesting or multisig?) — check who controls them before trusting the wallet numbers`, level: cp >= 50 ? 'bad' : 'caution' });
+        signals.push({ text: `${cp.toFixed(0)}% of supply sits in contracts${tcTop ? ` (largest: ${tcLabel}, ${tcTop.pct.toFixed(1)}%)` : ''} we can't fully identify. It could be a launcher, vesting or a multisig, so check who controls them before trusting the wallet numbers`, level: cp >= 50 ? 'bad' : 'caution' });
       }
       await resolveRow('contracts', parts.length
         ? `<span class="${cp >= 50 ? 'bad' : cp >= 30 ? 'caution' : ''}">${parts.join(' · ')}</span>`
@@ -2733,7 +3567,7 @@ async function runScan() {
       if (holderInfo.topContract && holderInfo.topContract.pct >= 5) {
         const tc = holderInfo.topContract;
         insertRowAfter('contracts', 'topcontract', 'Largest contract holder',
-          `<a href="${chain.explorer}/address/${tc.hash}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">${tc.name || 'Unnamed contract'} · ${shortAddr(tc.hash)} ↗</a> <span class="neutral">${tc.pct.toFixed(1)}%</span>`);
+          `<a href="${chain.explorer}/address/${tc.hash}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">${tc.hash.toLowerCase() === address.toLowerCase() ? "This token's own contract" : (tc.name ? escHtml(tc.name) : 'Unnamed contract')} · ${shortAddr(tc.hash)} ↗</a> <span class="neutral">${tc.pct.toFixed(1)}%</span>`);
       }
       await resolveRow('supply', holderInfo.displaySupply
         ? `<span>${holderInfo.displaySupply}</span>` : na('unavailable'));
@@ -2750,6 +3584,21 @@ async function runScan() {
       await resolveRow('liqusd', na(`unavailable (${liq.debug || 'unknown reason'})`), 200);
       await resolveRow('liqpool', na('unavailable'), 200);
       await resolveRow('lpburn', na('unavailable'));
+    } else if (liq.pools === 0 && curve) {
+      // Still on its launchpad curve: there is no pool yet, which is expected, so say where it stands
+      capAt(55, 'still on its launchpad bonding curve, so there is no open DEX market to assess yet');
+      const fmtQ = v => v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v >= 10 ? v.toFixed(0) : v.toFixed(2);
+      await resolveRow('liqusd', `<span class="neutral">On bonding curve · ${(curve.progress * 100).toFixed(0)}% to graduation</span>`, 200);
+      await resolveRow('liqpool', `<span class="neutral">${fmtQ(curve.raised)} of ${fmtQ(curve.threshold)} ${escHtml(curve.symbol || '')} raised · no DEX pool until it graduates</span>`, 200);
+      await resolveRow('lpburn', '<span class="neutral">— not graduated yet</span>');
+      if (curve.feeBps != null) {
+        const tot = (curve.feeBps + (curve.taxBps || 0)) / 100, tax = (curve.taxBps || 0) / 100;
+        const pct = v => (Math.round(v * 100) / 100).toString() + '%';
+        const cls = tot >= 5 ? 'bad' : tot >= 3 ? 'caution' : '';
+        if (tot >= 3) signals.push({ text: `Every buy and sell costs ${pct(tot)} in fees${tax ? ` (${pct(tax)} of it is the creator's own tax)` : ''}. Fixed at launch, but it adds up fast if you trade often`, level: tot >= 5 ? 'bad' : 'caution' });
+        insertRowAfter('lpburn', 'curvefee', 'Trading fee',
+          `<span class="${cls}">${pct(tot)} per trade${tax ? ` · creator tax ${pct(tax)}` : ' · no creator tax'}</span>`);
+      }
     } else if (liq.pools === 0) {
       capAt(55, 'no DEX market found, so tradability and liquidity can\'t be assessed');
       await resolveRow('liqusd', '<span class="neutral">No DEX pools found</span>', 200);
@@ -2797,7 +3646,7 @@ async function runScan() {
 
     // Step 9b — market: size, activity and how far price has fallen from its peak
     if (!liq.available || liq.pools === 0 || !liq.main) {
-      const msg = !liq.available ? na('unavailable') : '<span class="neutral">— no DEX market</span>';
+      const msg = !liq.available ? na('unavailable') : curve ? '<span class="neutral">— on bonding curve, no DEX market yet</span>' : '<span class="neutral">— no DEX market</span>';
       await resolveRow('mcap', msg, 200);
       await resolveRow('pchg', '<span class="neutral">—</span>', 200);
       await resolveRow('drawdown', '<span class="neutral">—</span>');
@@ -2845,6 +3694,8 @@ async function runScan() {
           : `<span class="${dd >= 90 ? 'bad' : dd >= 70 ? 'caution' : ''}">${dd >= 70 ? '⚠ ' : ''}-${dd.toFixed(1)}%${peakTxt}</span>`);
       } else {
         await resolveRow('drawdown', na(hist.debug || 'no price history'));
+        // Without price history a crash would go unseen, so a missing result must not lift the score
+        capAt(70, "price history couldn't be loaded, so the drop from its peak wasn't checked", 'caution');
       }
       marketPenalty = Math.min(30, marketPenalty);
       score -= marketPenalty; cat.market -= marketPenalty;
@@ -2863,7 +3714,7 @@ async function runScan() {
     }
     let depHtml;
     if (!deployerInfo.available) depHtml = na(`unavailable (${deployerInfo.debug || 'unknown reason'})`);
-    else if (dep.factory) depHtml = `<span class="${made > 3 ? 'caution' : 'ok'}">via launchpad ${dep.factoryName ? dep.factoryName + ' ' : ''}${shortAddr(dep.factory)} · wallet ${shortAddr(creatorAddr)} · ${Math.max(made, 1)} launch${Math.max(made, 1) === 1 ? '' : 'es'}${made === 0 ? ' (this one) · last ' + deployerInfo.sampleSize + ' txns checked' : ' · last ' + deployerInfo.sampleSize + ' txns checked'}</span>`;
+    else if (dep.factory) depHtml = `<span class="${made > 3 ? 'caution' : 'ok'}">via launchpad ${dep.factoryName ? escHtml(dep.factoryName) + ' ' : ''}${shortAddr(dep.factory)} · wallet ${shortAddr(creatorAddr)} · ${Math.max(made, 1)} launch${Math.max(made, 1) === 1 ? '' : 'es'}${made === 0 ? ' (this one) · last ' + deployerInfo.sampleSize + ' txns checked' : ' · last ' + deployerInfo.sampleSize + ' txns checked'}</span>`;
     else depHtml = `<span class="${made > 3 ? 'caution' : 'ok'}">${made} contract${made === 1 ? '' : 's'} seen (last ${deployerInfo.sampleSize} txns)</span>`;
     await resolveRow('deployer', depHtml);
 
@@ -2886,16 +3737,21 @@ async function runScan() {
     if (unavailable >= 4) capAt(60, `${unavailable} checks couldn't run`);
     score = Math.max(0, Math.min(100, score));
     let capPenalty = 0;
+    let ceilingPenalty = 0;
+    let capNote = '';
     if (caps.length) {
       const tightest = caps.reduce((a, b) => (a.value <= b.value ? a : b));
       if (score > tightest.value) {
+        capNote = `${tightest.value} because ${tightest.reason}`;
         capPenalty = score - tightest.value;
         score = tightest.value;
-        signals.unshift({ text: `Score capped at ${tightest.value} — ${tightest.reason}`, level: 'bad' });
+        signals.unshift({ text: `Score capped at ${tightest.value} — ${tightest.reason}`, level: tightest.level || 'bad' });
       }
     }
+    // Permanent ceiling: shown as a neutral note, not as a risk signal
+    if (score > MAX_SCORE) { ceilingPenalty = score - MAX_SCORE; score = MAX_SCORE; }
     document.getElementById('resultToken').innerHTML =
-      `${contractData && contractData.name ? contractData.name : (verificationStatus === 'unknown' ? 'Contract data unavailable' : 'Unverified contract')}<br><strong>${address.slice(0,6)}...${address.slice(-4)}</strong> · ${chain.label}<button type="button" class="watch-btn" id="scanWatchBtn">☆ Watch</button>`;
+      `${contractData && contractData.name ? escHtml(contractData.name) : (verificationStatus === 'unknown' ? 'Contract data unavailable' : 'Unverified contract')}<br><strong>${address.slice(0,6)}...${address.slice(-4)}</strong> · ${chain.label}<button type="button" class="watch-btn" id="scanWatchBtn">☆ Watch</button>`;
     lastScanned = { chain: selectedChain, address, symbol: (holderInfo && holderInfo.symbol) || '', name: (contractData && contractData.name) || '' };
     syncScanWatchBtn();
     document.getElementById('scanWatchBtn').onclick = () => { toggleWatch(lastScanned); syncScanWatchBtn(); };
@@ -2927,9 +3783,11 @@ async function runScan() {
       const cls = val > 0 ? 'pos' : val < 0 ? 'neg' : 'neu';
       const sign = val > 0 ? '+' : '';
       return `<span class="pill ${cls}">${c.label} ${sign}${val}</span>`;
-    }).join('') + (capPenalty ? `<span class="pill neg">Cap −${capPenalty}</span>` : '');
+    }).join('') + (capPenalty ? `<span class="pill neg">Cap −${capPenalty}</span>` : '')
+      + (ceilingPenalty ? `<span class="pill neu">Ceiling −${ceilingPenalty}</span>` : '');
 
     // Render investigation summary — "nothing found" is only ever claimed for data we actually got
+    const scopeNote = `<div class="summary-note">Scores top out at ${MAX_SCORE}. No token gets a perfect score because no scan sees everything. Not covered by this scan: shared funders between holders, fresh wallets, sniper or bundled buys, and a real sell transaction test.</div>`;
     const coverageNote = unavailable > 0
       ? `<div class="summary-note">${unavailable} check${unavailable === 1 ? '' : 's'} couldn't run on this token. A missing result is not a pass.</div>`
       : '';
@@ -2940,15 +3798,25 @@ async function runScan() {
         : `${signals.length} minor signal${signals.length === 1 ? '' : 's'} to be aware of`;
       summaryEl.innerHTML =
         `<div class="is-title">${headline}</div>
-         <ul>${signals.map(s => `<li style="color: ${s.level === 'bad' ? 'var(--danger)' : 'var(--warn)'}">${s.text}</li>`).join('')}</ul>${coverageNote}`;
+         <ul>${signals.map(s => `<li style="color: ${s.level === 'bad' ? 'var(--danger)' : 'var(--warn)'}">${s.text}</li>`).join('')}</ul>${coverageNote}${scopeNote}`;
     } else {
-      summaryEl.innerHTML = `<div class="is-title" style="color: var(--safe);">✓ No additional risk signals detected from available data</div>${coverageNote}`;
+      summaryEl.innerHTML = `<div class="is-title" style="color: var(--safe);">✓ No additional risk signals from the checks we run</div>${coverageNote}${scopeNote}`;
     }
     summaryEl.classList.add('visible');
 
     followElement(summaryEl, 40);
     updateLiveGraph(score);
     setGraphCalm(true);
+    FocusLens.finish(score);
+    LensNotes.show({
+      name: (holderInfo && holderInfo.symbol) || (contractData && contractData.name) || 'This token',
+      chain: chain.label, score, signals: signals.slice(), cat: Object.assign({}, cat),
+      capNote, ceilingPenalty, unavailable, maxScore: MAX_SCORE,
+    });
+    ShareCard.prepare({
+      name: (holderInfo && holderInfo.symbol) || (contractData && contractData.name) || 'This token',
+      chainKey: selectedChain, chainLabel: chain.label, address, score, signals: signals.slice(),
+    });
     scanOk = true;
 
   } catch (err) {
@@ -2959,10 +3827,235 @@ async function runScan() {
     btn.disabled = false;
     btn.textContent = "Scan";
     loading.classList.remove('visible');
+    if (!scanOk) { FocusLens.cancel(); LensNotes.reset(); ShareCard.reset(); }
     stopProgress(scanOk);
     scanFetchEnd();
   }
 }
+
+// ---------- SHARE CARD: one image with the token, the score and the main findings, ready for X ----------
+const ShareCard = (() => {
+  let blob = null, data = null, url = '';
+  const box = () => document.getElementById('shareBox');
+  const msg = t => { const m = document.getElementById('sbMsg'); if (m) { m.textContent = t; clearTimeout(msg.tm); msg.tm = setTimeout(() => (m.textContent = ''), 2600); } };
+  const cv = n => (getComputedStyle(document.documentElement).getPropertyValue(n).trim());
+  const grade = s => s >= 70 ? 'Clear' : s >= 45 ? 'Hazy' : 'Blurred';
+  const gcol = s => s >= 70 ? '#5FC98D' : s >= 45 ? '#E8A33D' : '#E85D5D';
+  const short = a => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
+  const firstSentence = t => { t = String(t || '').replace(/\s+/g, ' ').trim(); const m = t.match(/^(.{20,}?[.;])\s/); return (m ? m[1] : t).replace(/[.;]$/, ''); };
+
+  function findings(signals) {
+    const out = [];
+    signals = signals.filter(x => !/^score (is )?capped/i.test(String(x.text || '').trim()));   // a cap explains the score, it isn't a finding
+    signals.filter(x => x.level === 'bad').forEach(x => out.push({ k: 'bad', t: firstSentence(x.text) }));
+    signals.filter(x => x.level !== 'bad').forEach(x => out.push({ k: 'warn', t: firstSentence(x.text) }));
+    if (out.length < 3) {                                   // fill with what came back clean, straight from the rows
+      document.querySelectorAll('#checksList .check-row').forEach(r => {
+        if (out.length >= 4) return;
+        const v = r.querySelector('.check-val'), l = r.querySelector('.check-label');
+        if (!v || !l || !v.querySelector('.ok')) return;
+        out.push({ k: 'ok', t: (l.textContent.trim() + ': ' + v.textContent.replace(/[✓✔]/g, '').trim()).slice(0, 60) });
+      });
+    }
+    return out.slice(0, 3);
+  }
+
+  function wrap(ctx, text, maxW, maxLines) {
+    const words = text.split(' '), lines = []; let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+      if (lines.length === maxLines) break;
+    }
+    if (lines.length < maxLines && line) lines.push(line);
+    if (lines.length === maxLines && words.join(' ') !== lines.join(' ')) {
+      let last = lines[maxLines - 1]; while (ctx.measureText(last + '…').width > maxW && last.length) last = last.slice(0, -1);
+      lines[maxLines - 1] = last + '…';
+    }
+    return lines;
+  }
+
+  function draw(d) {
+    const W = 1200, H = 675, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'), disp = cv('--font-display') || 'sans-serif', mono = cv('--font-mono') || 'monospace', col = gcol(d.score);
+    g.fillStyle = '#060912'; g.fillRect(0, 0, W, H);
+    let gr = g.createRadialGradient(920, 320, 40, 920, 320, 520);
+    gr.addColorStop(0, 'rgba(242,201,76,.16)'); gr.addColorStop(1, 'rgba(242,201,76,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    // a dotted planet behind the score
+    const cx = 920, cy = 320, R = 230;
+    for (let lat = -80; lat <= 80; lat += 7) for (let lon = -180; lon < 180; lon += 7) {
+      const la = lat * Math.PI / 180, lo = (lon + 25) * Math.PI / 180, z = Math.cos(la) * Math.cos(lo);
+      if (z < 0) continue;
+      const x = cx + Math.cos(la) * Math.sin(lo) * R, y = cy - Math.sin(la) * R * 0.98;
+      g.globalAlpha = 0.06 + 0.22 * z; g.fillStyle = '#E9EEF7'; g.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
+    }
+    g.globalAlpha = 1;
+    // brand
+    g.lineWidth = 6; g.strokeStyle = '#F2C94C'; g.beginPath(); g.arc(78, 78, 22, 0, Math.PI * 2); g.stroke();
+    g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(95, 95); g.lineTo(114, 114); g.stroke();
+    g.lineWidth = 5; g.beginPath(); g.moveTo(68, 79); g.lineTo(75, 86); g.lineTo(89, 71); g.stroke();
+    g.font = '700 36px ' + disp; g.textBaseline = 'middle'; g.fillStyle = '#F4F6FB'; g.fillText('Netto', 124, 80);
+    g.fillStyle = '#F2C94C'; g.fillText('Lens', 124 + g.measureText('Netto').width, 80);
+    // token
+    g.fillStyle = '#F4F6FB'; g.font = '700 64px ' + disp; g.textBaseline = 'alphabetic';
+    let name = d.name; while (g.measureText(name).width > 600 && name.length > 3) name = name.slice(0, -2);
+    if (name !== d.name) name += '…';
+    g.fillText(name, 60, 230);
+    g.fillStyle = '#8993AD'; g.font = '500 26px ' + mono; g.fillText(d.chainLabel + ' · ' + short(d.address), 60, 276);
+    // findings
+    let y = 350; const marks = { bad: ['✕', '#FF5A5A'], warn: ['!', '#E8A33D'], ok: ['✓', '#5FC98D'] };
+    for (const f of d.findings) {
+      g.font = '700 30px ' + disp; g.fillStyle = marks[f.k][1]; g.fillText(marks[f.k][0], 60, y);
+      g.font = '500 27px ' + disp; g.fillStyle = '#D9DEEA';
+      const lines = wrap(g, f.t, 560, 2);
+      lines.forEach((ln, j) => g.fillText(ln, 100, y + j * 36));
+      y += 36 * lines.length + 22;
+    }
+    // score ring
+    g.lineWidth = 18; g.lineCap = 'round'; g.strokeStyle = 'rgba(255,255,255,.08)';
+    g.beginPath(); g.arc(cx, cy, 150, 0, Math.PI * 2); g.stroke();
+    g.save(); g.shadowColor = col; g.shadowBlur = 24; g.strokeStyle = col;
+    g.beginPath(); g.arc(cx, cy, 150, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (d.score / 100)); g.stroke(); g.restore();
+    g.textAlign = 'center'; g.fillStyle = col; g.font = '700 118px ' + disp; g.fillText(String(d.score), cx, cy + 36);
+    g.fillStyle = '#C9D0E0'; g.font = '600 20px ' + mono; g.fillText('TRUST SCORE · ' + grade(d.score).toUpperCase(), cx, cy + 88);
+    g.textAlign = 'left';
+    // footer
+    g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(60, 590, W - 120, 1);
+    g.fillStyle = '#8993AD'; g.font = '500 22px ' + disp; g.fillText('Checks, not advice. Scores top out at 85. ' + new Date().toISOString().slice(0, 10), 60, 632);
+    g.textAlign = 'right'; g.fillStyle = '#F2C94C'; g.font = '700 26px ' + mono; g.fillText('nettolens.xyz', W - 60, 632); g.textAlign = 'left';
+    return c;
+  }
+
+  function shareText() { return `scanned ${data.name} on ${data.chainLabel.toLowerCase()}: ${data.score}/100 (${grade(data.score).toLowerCase()}). checks, not advice.`; }
+
+  function wire() {
+    const on = (id, fn) => { const el = document.getElementById(id); if (el && !el.dataset.wired) { el.dataset.wired = '1'; el.addEventListener('click', fn); } };
+    on('sbX', () => window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(url), '_blank', 'noopener'));
+    on('sbSave', () => {
+      if (!blob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `nettolens-${(data.name || 'token').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${data.score}.png`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); msg('Saved ✓');
+    });
+    on('sbCopy', async () => {
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); msg('Image copied ✓ paste it into your post'); }
+      catch (e) { msg('This browser blocks copying images. Use Save image instead.'); }
+    });
+    on('sbLink', async () => {
+      try { await navigator.clipboard.writeText(url); msg('Link copied ✓'); } catch (e) { msg(url); }
+    });
+    on('sbNative', async () => {
+      try { await navigator.share({ files: [new File([blob], 'nettolens-scan.png', { type: 'image/png' })], text: shareText() + ' ' + url }); }
+      catch (e) { /* closed the sheet */ }
+    });
+  }
+
+  return {
+    prepare(d) {
+      try {
+        data = Object.assign({}, d, { findings: findings(d.signals || []) });
+        const base = /^https?:/.test(location.protocol) && !/claude|localhost|127\.0\.0\.1/.test(location.host) ? location.origin : 'https://nettolens.xyz';
+        url = `${base}/?ca=${d.address}&chain=${d.chainKey}`;
+        const c = draw(data);
+        c.toBlob(b => {
+          blob = b; document.getElementById('shareImg').src = c.toDataURL('image/png');
+          const nat = document.getElementById('sbNative');
+          try { nat.hidden = !(navigator.canShare && navigator.canShare({ files: [new File([b], 'x.png', { type: 'image/png' })] })); } catch (e) { nat.hidden = true; }
+          wire(); box().classList.add('on');
+        }, 'image/png');
+      } catch (e) { /* sharing is a nicety; the scan result stands without it */ }
+    },
+    reset() { blob = null; data = null; const b = box(); if (b) b.classList.remove('on'); },
+  };
+})();
+
+// A shared link (?ca=0x…&chain=robinhood) opens straight into that scan
+(function () {
+  try {
+    const p = new URLSearchParams(location.search), ca = (p.get('ca') || '').trim(), ch = (p.get('chain') || 'robinhood').trim();
+    if (/^0x[0-9a-fA-F]{40}$/.test(ca) && CHAINS[ch]) setTimeout(() => scanFromTool(ch, ca), 700);
+  } catch (e) { /* ignore malformed links */ }
+})();
+
+// ---------- HUD AROUND THE GLOBE ----------
+const EarthHud = (() => {
+  const GROUP = { verified: 'contract', ownership: 'contract', age: 'contract', mint: 'contract', honeypot: 'contract', proxy: 'contract', roles: 'contract', access: 'contract',
+    holders: 'holders', top10: 'holders', contracts: 'holders', supply: 'holders',
+    liqusd: 'market', liqpool: 'market', lpburn: 'market', mcap: 'market', pchg: 'market', drawdown: 'market',
+    deployer: 'deployer', cluster: 'deployer' };
+  const RANK = { ok: 0, warn: 1, risk: 2 };
+  const hud = () => document.getElementById('earthHud');
+  let g = {}, newRows = [], timer = 0;
+
+  async function refreshLive() {
+    const hudEl = hud(); if (!hudEl || document.hidden || hudEl.offsetParent === null) return;
+    try {
+      const [bn, gp] = await Promise.all([rpcCall(CHAINS.robinhood.rpc, 'eth_blockNumber', []), rpcCall(CHAINS.robinhood.rpc, 'eth_gasPrice', [])]);
+      document.getElementById('hudBlock').textContent = '#' + parseInt(bn, 16).toLocaleString('en-US');
+      const gw = parseInt(gp, 16) / 1e9;
+      document.getElementById('hudGas').textContent = (gw < 0.01 ? gw.toFixed(4) : gw.toFixed(3)) + ' gwei';
+    } catch (e) { /* leave the last good values */ }
+    try {
+      const res = await gtPage('robinhood', net => `networks/${net}/new_pools?include=base_token&page=1`);
+      const j = res.ok ? res.json : null; if (!j || !Array.isArray(j.data)) return;
+      const toks = {}; (j.included || []).forEach(t => { if (t && t.attributes) toks[t.id] = t.attributes; });
+      const now = Date.now(); let hour = 0; const seen = new Set(); newRows = [];
+      for (const p of j.data) {
+        const a = p.attributes || {}, created = Date.parse(a.pool_created_at || '');
+        if (Number.isFinite(created) && now - created <= 3600e3) hour++;
+        const id = p.relationships && p.relationships.base_token && p.relationships.base_token.data && p.relationships.base_token.data.id;
+        const tk = toks[id] || {}, addr = tk.address || (id ? id.slice(id.indexOf('_') + 1) : '');
+        if (!/^0x[0-9a-fA-F]{40}$/.test(addr) || seen.has(addr.toLowerCase())) continue;
+        seen.add(addr.toLowerCase());
+        if (newRows.length < 4) newRows.push({ addr, sym: tk.symbol || (a.name || '').split('/')[0].trim() || 'token', created: a.pool_created_at });
+      }
+      document.getElementById('hudPools').textContent = hour >= j.data.length ? hour + '+' : String(hour);
+      const ul = document.getElementById('hudNewList');
+      ul.innerHTML = newRows.length ? newRows.map((r, i) => `<li tabindex="0" role="button" data-i="${i}" aria-label="Scan ${escHtml(r.sym)}"><b>${escHtml(r.sym)}</b><span>${fmtAge(r.created)}</span></li>`).join('')
+        : '<li class="hud-muted">Nothing new right now</li>';
+    } catch (e) { /* the list is a nicety */ }
+  }
+
+  function wire() {
+    const ul = document.getElementById('hudNewList'); if (!ul) return;
+    const go = e => { const li = e.target.closest('li[data-i]'); if (!li) return; const r = newRows[+li.dataset.i]; if (r) scanFromTool('robinhood', r.addr); };
+    ul.addEventListener('click', go);
+    ul.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
+  }
+
+  function paint(key) {
+    const el = document.querySelector(`.hud-scan[data-g="${key}"]`), x = g[key]; if (!el || !x) return;
+    el.querySelector('.hud-n b').textContent = x.done; el.querySelector('.hud-n span').textContent = x.total;
+    el.querySelector('.hud-bar i').style.width = (x.total ? Math.min(100, x.done / x.total * 100) : 0) + '%';
+    if (x.done) el.dataset.st = x.worst; else delete el.dataset.st;
+  }
+
+  if (document.readyState !== 'loading') { wire(); setTimeout(refreshLive, 900); }
+  else document.addEventListener('DOMContentLoaded', () => { wire(); setTimeout(refreshLive, 900); });
+  timer = setInterval(refreshLive, 30000);
+
+  return {
+    start() {
+      g = { contract: { done: 0, total: 0, worst: 'ok' }, holders: { done: 0, total: 0, worst: 'ok' }, market: { done: 0, total: 0, worst: 'ok' }, deployer: { done: 0, total: 0, worst: 'ok' } };
+      document.querySelectorAll('#checksList .check-row:not(.role-row) [id^="val-"]').forEach(v => { const k = GROUP[v.id.slice(4)] || 'contract'; g[k].total++; });
+      Object.keys(g).forEach(paint);
+      const h = hud(); if (h) h.classList.add('scanning');
+    },
+    tick(rowId, st) {
+      const k = GROUP[rowId] || 'contract', x = g[k]; if (!x) return;
+      x.done++; if (RANK[st] > RANK[x.worst]) x.worst = st; paint(k);
+    },
+    cancel() { const h = hud(); if (h) h.classList.remove('scanning'); },
+  };
+})();
+
+// "Launches" in the menu opens the live list on its New tab
+(function () {
+  const a = document.getElementById('navLaunches'); if (!a) return;
+  a.addEventListener('click', () => {
+    const b = [...document.querySelectorAll('#hotTabs button')].find(x => /new/i.test(x.textContent || ''));
+    if (b && !b.classList.contains('active')) b.click();
+  });
+})();
 
 // ---------- SKY BACKGROUND: every star twinkles on its own rhythm, extra stars fill the edges ----------
 (function initSky() {
@@ -2976,16 +4069,19 @@ async function runScan() {
   const ctx = cv.getContext('2d');
   const rand = (a, b) => a + Math.random() * (b - a);
 
+  // The clusters are pushed out from the middle of the screen and drawn fainter, so they read as
+  // a quiet sky around the globe instead of a tangle behind it
+  const SPX = 1.32, SPY = 1.22, spx = x => 700 + (x - 700) * SPX, spy = y => 450 + (y - 450) * SPY;
   const lines = [...tpl.querySelectorAll('line')].map(l => ({
-    x1: +l.getAttribute('x1'), y1: +l.getAttribute('y1'), x2: +l.getAttribute('x2'), y2: +l.getAttribute('y2'),
-    a: Math.min(1, parseFloat(l.getAttribute('opacity') || '0.3') * 1.35)
+    x1: spx(+l.getAttribute('x1')), y1: spy(+l.getAttribute('y1')), x2: spx(+l.getAttribute('x2')), y2: spy(+l.getAttribute('y2')),
+    a: Math.min(1, parseFloat(l.getAttribute('opacity') || '0.3') * 0.75)
   }));
   const stars = [];
   tpl.querySelectorAll('circle').forEach(c => {
     if (c.classList.contains('sky-glow')) return;
     const raw = parseFloat(c.getAttribute('opacity') || '0.8');
-    stars.push({ x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), r: +c.getAttribute('r'), halo: raw <= 0.1,
-      base: raw <= 0.1 ? 0.12 : Math.min(1, raw + 0.2), dur: rand(2.2, 6), ph: Math.random() });
+    stars.push({ x: spx(+c.getAttribute('cx')), y: spy(+c.getAttribute('cy')), r: +c.getAttribute('r') * 0.85, halo: raw <= 0.1,
+      base: raw <= 0.1 ? 0.08 : Math.min(1, raw * 0.85), dur: rand(2.2, 6), ph: Math.random() });
   });
   for (let i = 0; i < 90; i++) {
     const raw = rand(0.45, 0.9);
@@ -2993,7 +4089,7 @@ async function runScan() {
   }
   // same twinkle curve as before: base → bright → dim → base
   function alphaAt(s, t, tile) {
-    if (s.halo) return 0.12;
+    if (s.halo) return 0.08;
     let p = ((t / s.dur) + s.ph + tile * 0.37) % 1;
     const low = Math.max(0.15, s.base * 0.25);
     const seg = (a, b, u) => a + (b - a) * (u * u * (3 - 2 * u));
@@ -3032,7 +4128,7 @@ async function runScan() {
       const Y = py => oy + py * sc;
       const gx = X(700), gy = Y(420), gr = 260 * sc;
       const g = x.createRadialGradient(gx, gy, 0, gx, gy, gr);
-      const ga = (v === 0 ? 0.8 : 0.45) * 0.35;
+      const ga = (v === 0 ? 0.8 : 0.45) * 0.18;
       g.addColorStop(0, `rgba(242,201,76,${ga})`); g.addColorStop(1, 'rgba(242,201,76,0)');
       x.fillStyle = g; x.fillRect(gx - gr, gy - gr, gr * 2, gr * 2);
       x.lineWidth = 1;
@@ -3105,20 +4201,25 @@ async function fetchCoinPrice(coinbaseSymbol, geckoId) {
   }
 }
 
+// The strip holds several copies of each price, so every update goes to all of them
+function setTicker(key, text) {
+  document.querySelectorAll('[data-tk="' + key + '"]').forEach(el => { el.textContent = text; });
+}
+
 async function loadTicker() {
   try {
     const btcPrice = await fetchCoinPrice('BTC', 'bitcoin');
-    document.getElementById('tickerBTC').textContent = '$' + Math.round(btcPrice).toLocaleString('en-US');
+    setTicker('btc', '$' + Math.round(btcPrice).toLocaleString('en-US'));
   } catch (e) {
     console.error('BTC price failed entirely:', e);
-    document.getElementById('tickerBTC').textContent = '—';
+    setTicker('btc', '—');
   }
   try {
     const ethPrice = await fetchCoinPrice('ETH', 'ethereum');
-    document.getElementById('tickerETH').textContent = '$' + Math.round(ethPrice).toLocaleString('en-US');
+    setTicker('eth', '$' + Math.round(ethPrice).toLocaleString('en-US'));
   } catch (e) {
     console.error('ETH price failed entirely:', e);
-    document.getElementById('tickerETH').textContent = '—';
+    setTicker('eth', '—');
   }
   try {
     let gasHex;
@@ -3129,12 +4230,71 @@ async function loadTicker() {
       gasHex = await rpcCall('https://eth.llamarpc.com', 'eth_gasPrice', []);
     }
     const gwei = parseInt(gasHex, 16) / 1e9;
-    document.getElementById('tickerGas').textContent = gwei.toFixed(1) + ' gwei';
+    setTicker('gas', gwei.toFixed(1) + ' gwei');
   } catch (e) {
     console.error('Gas price failed on all RPCs:', e);
-    document.getElementById('tickerGas').textContent = '—';
+    setTicker('gas', '—');
   }
+  if (window.rebuildTicker) window.rebuildTicker();
 }
+
+// ---------- TICKER STRIP: fill the width with copies, then loop seamlessly ----------
+(function initTickerStrip() {
+  const bar = document.querySelector('.ticker-bar');
+  const viewport = bar && bar.querySelector('.ticker-viewport');
+  const track = viewport && viewport.querySelector('.ticker-track');
+  const setA = track && track.querySelector('.ticker-set');
+  const base = setA && setA.querySelector('.ticker-group');
+  if (!base) return;
+  const SPEED = 36; // pixels per second: readable, not frantic
+  let lastGroupW = 0, lastViewW = 0;
+  function build(force) {
+    const groupW = base.getBoundingClientRect().width;
+    const viewW = viewport.clientWidth;
+    if (!groupW || !viewW) return;
+    if (!force && Math.abs(groupW - lastGroupW) < 2 && Math.abs(viewW - lastViewW) < 2) return;
+    lastGroupW = groupW; lastViewW = viewW;
+    while (setA.children.length > 1) setA.removeChild(setA.lastChild);
+    const oldCopy = track.querySelector('.ticker-set + .ticker-set');
+    if (oldCopy) track.removeChild(oldCopy);
+    const copies = Math.max(1, Math.ceil(viewW / groupW) + 1);
+    for (let i = 1; i < copies; i++) {
+      const c = base.cloneNode(true);
+      c.setAttribute('aria-hidden', 'true');
+      setA.appendChild(c);
+    }
+    const setB = setA.cloneNode(true);
+    setB.setAttribute('aria-hidden', 'true');
+    track.appendChild(setB);
+    track.style.setProperty('--tk-dur', (setA.getBoundingClientRect().width / SPEED).toFixed(1) + 's');
+  }
+  window.rebuildTicker = () => build(false);
+  build(true);
+
+  // Play / pause. With "reduce motion" on, it starts paused and playing is an explicit choice.
+  const btn = document.getElementById('tickerToggle');
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let saved = null;
+  try { saved = localStorage.getItem('nl-ticker'); } catch (e) { /* storage can be blocked */ }
+  let moving = saved ? saved === 'on' : !reduce;
+  function applyMotion() {
+    bar.classList.toggle('tk-play', moving);
+    bar.classList.toggle('tk-paused', !moving);
+    if (btn) {
+      btn.textContent = moving ? '⏸' : '▶';
+      btn.setAttribute('aria-label', moving ? 'Pause ticker' : 'Play ticker');
+    }
+  }
+  if (btn) btn.addEventListener('click', () => {
+    moving = !moving;
+    try { localStorage.setItem('nl-ticker', moving ? 'on' : 'off'); } catch (e) { /* ignore */ }
+    applyMotion();
+  });
+  applyMotion();
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => build(false), 200); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => build(false));
+})();
 // ---------- ADDRESS FIELD: one-tap clear, select-all on focus, Enter to scan ----------
 (function initAddressField() {
   const input = document.getElementById('address');
