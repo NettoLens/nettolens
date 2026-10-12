@@ -906,6 +906,24 @@
   .hud.scanning .hud-idle { opacity: 0; transform: scale(.96); pointer-events: none; }
   @media (max-width: 1100px) { .hud-panel { display: none; } }
   @media (max-width: 900px) { .hud { display: none; } }
+
+  /* ---------- IMPERSONATION: our own name on tokens that aren't ours ---------- */
+  .fake-banner { position: relative; z-index: 60; text-align: center; padding: 8px 16px; font-size: 13.5px; line-height: 1.45;
+    color: #FFD9D9; background: linear-gradient(90deg, rgba(120,20,20,.55), rgba(160,30,30,.7), rgba(120,20,20,.55)); border-bottom: 1px solid rgba(255,90,90,.45); }
+  .fake-banner strong { color: #fff; }
+  .imposter-box { display: none; margin: 0 0 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,90,90,.65);
+    background: rgba(120,20,20,.35); color: #FFE1E1; font-size: 14.5px; line-height: 1.5; }
+  .imposter-box.on { display: block; }
+  .imposter-box b { color: #fff; display: block; font-size: 15.5px; margin-bottom: 4px; }
+
+  /* phones: the two notices stay one line each so the globe isn't pushed down */
+  .fake-banner .fb-short { display: none; }
+  @media (max-width: 600px) {
+    .fake-banner { font-size: 12.5px; padding: 7px 12px; }
+    .fake-banner .fb-long { display: none; } .fake-banner .fb-short { display: inline; }
+    .status-banner .sb-long { display: none; }
+    .status-banner { padding-top: 6px !important; padding-bottom: 6px !important; font-size: 12.5px; }
+  }
 </style>
 </head>
 <body>
@@ -1197,8 +1215,10 @@
   <button type="button" class="ticker-toggle" id="tickerToggle" aria-label="Pause ticker">⏸</button>
 </div>
 
+<div class="fake-banner" role="note">⚠️ <strong>NettoLens has not launched a token.</strong><span class="fb-long"> Any token using our name or logo is not ours. If we ever launch, the contract will be posted here first.</span><span class="fb-short"> Tokens using our name aren't ours.</span></div>
+
 <div class="status-banner">
-  🚧 <strong>Early build — live and public.</strong> Scanner, trending pairs, watchlist and trade calculator all run on real data today. New tools ship weekly. <span class="build-tag" title="Site build">build 10.05-b</span>
+  🚧 <strong>Early build — live and public.</strong><span class="sb-long"> Scanner, trending pairs, watchlist and trade calculator all run on real data today. New tools ship weekly.</span> <span class="build-tag" title="Site build">build 10.05-b</span>
 </div>
 
 <div class="wrap">
@@ -1296,6 +1316,7 @@
             </div>
             <div class="score-breakdown" id="scoreBreakdown"></div>
           </div>
+          <div class="imposter-box" id="imposterBox" role="alert"></div>
           <div class="investigation-summary" id="investigationSummary"></div>
           <div class="share-box" id="shareBox" aria-live="polite">
             <div class="sb-hd">SHARE THIS RESULT</div>
@@ -1749,6 +1770,7 @@ const DEAD_ADDRESSES = [
 ];
 
 function shortAddr(a) { return a ? `${a.slice(0,6)}...${a.slice(-4)}` : '—'; }
+function addrLink(explorer, a) { return `<a href="${explorer}/address/${a}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">${shortAddr(a)} ↗</a>`; }
 
 async function rpcCall(rpcUrl, method, params) {
   const res = await fetch(rpcUrl, {
@@ -1801,6 +1823,45 @@ async function probeBondingCurve(rpcUrl, explorerBase, curve, token) {
     } catch (e) { /* older curves may not expose these */ }
     return { hash: curve.toLowerCase(), progress, raised: human(raised), threshold: human(threshold), symbol, feeBps, taxBps };
   } catch (e) { return null; }
+}
+
+// Copycats: other tokens on the same chain with the same name or symbol, and which of them came first
+async function checkCopies(explorerBase, address, name, symbol) {
+  const norm = v => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const nName = norm(name), nSym = norm(symbol), self = address.toLowerCase();
+  if (!nName && !nSym) return { available: false, debug: 'no name or symbol' };
+  const found = new Map(); let searched = 0;
+  for (const q of [...new Set([name, symbol].filter(Boolean))].slice(0, 2)) {
+    try {
+      const res = await fetch(`${explorerBase}/api/v2/tokens?q=${encodeURIComponent(q)}&type=ERC-20`);
+      if (!res.ok) continue;
+      const j = await res.json();
+      if (!j || !Array.isArray(j.items)) continue;
+      searched++;
+      for (const t of j.items) {
+        const a = String(t.address_hash || t.address || '').toLowerCase();
+        if (!/^0x[0-9a-f]{40}$/.test(a) || a === self) continue;
+        if ((nName && norm(t.name) === nName) || (nSym && nSym.length >= 3 && norm(t.symbol) === nSym))
+          found.set(a, { addr: a, name: t.name, symbol: t.symbol, holders: Number(t.holders_count || t.holders || 0) });
+      }
+    } catch (e) { /* try the other query */ }
+  }
+  if (!searched) return { available: false, debug: 'token search unavailable' };   // a failed search is not a clean result
+  const others = [...found.values()].sort((a, b) => b.holders - a.holders);
+  const created = async a => {
+    try {
+      const r = await fetch(`${explorerBase}/api/v2/addresses/${a}`); if (!r.ok) return null;
+      const d = await r.json(), tx = d.creation_transaction_hash || d.creation_tx_hash; if (!tx) return null;
+      const t = await fetch(`${explorerBase}/api/v2/transactions/${tx}`); if (!t.ok) return null;
+      const ts = Date.parse((await t.json()).timestamp || ''); return Number.isFinite(ts) ? ts : null;
+    } catch (e) { return null; }
+  };
+  const sample = others.slice(0, 5);
+  const [selfTs, ...ts] = await Promise.all([created(self), ...sample.map(o => created(o.addr))]);
+  sample.forEach((o, i) => { o.ts = ts[i]; });
+  const dated = sample.filter(o => o.ts != null);
+  const older = selfTs != null ? dated.filter(o => o.ts < selfTs).sort((a, b) => a.ts - b.ts) : [];
+  return { available: true, count: others.length, others, selfTs, oldest: older[0] || null, olderCount: older.length };
 }
 
 async function checkOwner(rpcUrl, address) {
@@ -2073,7 +2134,7 @@ async function checkHolders(explorerBase, address, poolAddresses = [], probeCurv
   const tokenInfo = tokenInfoRes.ok ? await tokenInfoRes.json() : null;
   const totalSupply = tokenInfo ? Number(tokenInfo.total_supply) : null;
   const decimals = tokenInfo && tokenInfo.decimals ? Number(tokenInfo.decimals) : 0;
-  const symbol = tokenInfo ? tokenInfo.symbol : null;
+  const symbol = tokenInfo ? tokenInfo.symbol : null, tokenName = tokenInfo ? tokenInfo.name : null;
   // Real holder count from the token endpoint (the holders list itself is only the first page)
   const realCount = tokenInfo ? Number(tokenInfo.holders_count ?? tokenInfo.holders) : NaN;
 
@@ -2158,7 +2219,7 @@ async function checkHolders(explorerBase, address, poolAddresses = [], probeCurv
     listedCount: items.length,
     // Share of live supply held by wallets that aren't in the fetched list
     restPct: circ ? Math.max(0, 100 - ((wallets.reduce((a, w) => a + w.v, 0) + inPools + inContracts + inLaunch) / circ) * 100) : 0,
-    symbol,
+    symbol, name: tokenName,
     displaySupply,
   };
 }
@@ -3299,6 +3360,7 @@ async function runScan() {
     sectionHeader('Deployer & network');
     pendingRow('deployer', 'Deployer footprint');
     pendingRow('cluster', 'Wallet cluster (creator-funded)');
+    pendingRow('copies', 'Same-name tokens');
     setGraphCalm(false);
     updateLiveGraph();
     LensNotes.reset(); ShareCard.reset();
@@ -3524,6 +3586,17 @@ async function runScan() {
     const holderInfo = await checkHolders(chain.explorer, address, poolAddrs,
       h => probeBondingCurve(chain.rpc, chain.explorer, h, address));
     const curve = holderInfo.available ? holderInfo.curve : null;
+    {
+      // Tokens borrowing our own name. NettoLens has no token yet; once it does, its address goes in OFFICIAL_NETTO.
+      const OFFICIAL_NETTO = [];
+      const nm = `${holderInfo.name || ''} ${holderInfo.symbol || ''} ${(contractData && contractData.name) || ''}`;
+      const box = document.getElementById('imposterBox');
+      if (/netto ?lens|netto ?chain|\bnetto\b/i.test(nm) && !OFFICIAL_NETTO.includes(address.toLowerCase())) {
+        signals.unshift({ text: 'This token uses the NettoLens name but is not ours. NettoLens has not launched a token', level: 'bad' });
+        capAt(20, 'it uses the NettoLens name without being an official NettoLens token');
+        if (box) { box.innerHTML = '<b>⚠ Not a NettoLens token</b>This token uses our name or logo, but NettoLens has not launched a token. We did not create it and do not control it.'; box.classList.add('on'); }
+      } else if (box) { box.classList.remove('on'); box.innerHTML = ''; }
+    }
     if (holderInfo.available) {
       await resolveRow('holders', holderInfo.holder_count
         ? `<span>${holderInfo.holder_count.toLocaleString('en-US')} holders${holderInfo.symbol ? ' · ' + escHtml(holderInfo.symbol) : ''}</span>`
@@ -3732,6 +3805,23 @@ async function runScan() {
           ? `<span class="caution">⚠ ${clusterInfo.fundedByCreator} of top ${clusterInfo.checked} holders funded directly by deployer</span>`
           : `<span class="ok">✓ No direct deployer funding in top ${clusterInfo.checked} holders</span>`)
       : na(`unavailable (${clusterInfo.debug || 'unknown reason'})`), 0);
+
+    // Copycats: is this the first token with this name, or a later copy?
+    const copyInfo = await checkCopies(chain.explorer, address,
+      (holderInfo && holderInfo.name) || (contractData && contractData.name), holderInfo && holderInfo.symbol);
+    if (!copyInfo.available) { unavailable++; }
+    else if (copyInfo.oldest) {
+      const o = copyInfo.oldest, days = Math.max(0, Math.round((copyInfo.selfTs - o.ts) / 86400e3));
+      const when = days >= 1 ? `${days}d earlier` : `${Math.max(1, Math.round((copyInfo.selfTs - o.ts) / 3600e3))}h earlier`;
+      signals.push({ text: `${copyInfo.count} other token${copyInfo.count === 1 ? '' : 's'} on this chain use the same name. At least one came first (${shortAddr(o.addr)}, ${when}), so this may be a copy. Check which contract the project itself posts`, level: 'caution' });
+    }
+    await resolveRow('copies', !copyInfo.available ? na(`unavailable (${copyInfo.debug || 'search failed'})`)
+      : copyInfo.count === 0 ? '<span class="ok">✓ No other token with this name</span>'
+      : copyInfo.oldest
+        ? `<span class="caution">⚠ ${copyInfo.count} other${copyInfo.count === 1 ? '' : 's'} share this name · older one: ${addrLink(chain.explorer, copyInfo.oldest.addr)}</span>`
+        : copyInfo.selfTs != null && copyInfo.others.some(o => o.ts != null)
+          ? `<span class="ok">✓ ${copyInfo.count} later cop${copyInfo.count === 1 ? 'y' : 'ies'} · this one came first</span>`
+          : `<span class="neutral">${copyInfo.count} other${copyInfo.count === 1 ? '' : 's'} share this name · order unknown</span>`, 0);
 
     // Too many missing checks = we can't vouch for a high score
     if (unavailable >= 4) capAt(60, `${unavailable} checks couldn't run`);
@@ -3981,7 +4071,7 @@ const EarthHud = (() => {
   const GROUP = { verified: 'contract', ownership: 'contract', age: 'contract', mint: 'contract', honeypot: 'contract', proxy: 'contract', roles: 'contract', access: 'contract',
     holders: 'holders', top10: 'holders', contracts: 'holders', supply: 'holders',
     liqusd: 'market', liqpool: 'market', lpburn: 'market', mcap: 'market', pchg: 'market', drawdown: 'market',
-    deployer: 'deployer', cluster: 'deployer' };
+    deployer: 'deployer', cluster: 'deployer', copies: 'deployer' };
   const RANK = { ok: 0, warn: 1, risk: 2 };
   const hud = () => document.getElementById('earthHud');
   let g = {}, newRows = [], timer = 0;
