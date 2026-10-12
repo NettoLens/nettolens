@@ -85,3 +85,9 @@ For curve tokens the scan also reads `feeBps()` and `creatorTaxBps()` and shows 
 
 ### Share card
 When a scan finishes, NettoLens draws a 1200×675 card (token, network, score ring and the main findings, with "Checks, not advice" and nettolens.xyz in the footer). It can be posted to X (text and link prefilled), saved, copied, or shared through the phone's share sheet. Links of the form `nettolens.xyz/?ca=0x…&chain=robinhood` open straight into that scan. The card is drawn in the browser; nothing is uploaded.
+
+### No official token yet
+NettoLens has not launched a token. Copycat tokens using the NettoLens / Nettochain name and logo have appeared on Pons; the site shows a banner saying so, and scanning a token whose name or symbol uses our name shows a red "Not a NettoLens token" notice and caps its score at 20. If an official token is ever launched, its contract will be posted on nettolens.xyz first and added to the allow-list in the code.
+
+### Same-name tokens (copycats)
+Each scan searches the chain's explorer for other tokens with the same name or symbol and checks when they were created. If an older token with the same name exists, the row shows it with a link and a caution signal ("this may be a copy, check which contract the project itself posts"). If this token came first, the row says so. A failed search is shown as unavailable, never as clean. Names can coincide, so this is a caution, not a score penalty.
