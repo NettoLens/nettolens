@@ -911,6 +911,10 @@
   .fake-banner { position: relative; z-index: 60; text-align: center; padding: 8px 16px; font-size: 13.5px; line-height: 1.45;
     color: #FFD9D9; background: linear-gradient(90deg, rgba(120,20,20,.55), rgba(160,30,30,.7), rgba(120,20,20,.55)); border-bottom: 1px solid rgba(255,90,90,.45); }
   .fake-banner strong { color: #fff; }
+  .fake-banner.official { color: #F3E2B0; background: linear-gradient(90deg, rgba(90,70,15,.55), rgba(130,100,20,.7), rgba(90,70,15,.55)); border-bottom-color: rgba(232,190,80,.5); }
+  .fake-banner .fb-ca { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #fff; word-break: break-all; }
+  .fake-banner .fb-copy { margin-left: 8px; padding: 2px 10px; border-radius: 999px; border: 1px solid rgba(232,190,80,.7); background: rgba(232,190,80,.15); color: #FFE7A3; font: inherit; font-size: 12px; cursor: pointer; }
+  .fake-banner .fb-copy:hover { background: rgba(232,190,80,.3); }
   .imposter-box { display: none; margin: 0 0 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,90,90,.65);
     background: rgba(120,20,20,.35); color: #FFE1E1; font-size: 14.5px; line-height: 1.5; }
   .imposter-box.on { display: block; }
@@ -1215,7 +1219,7 @@
   <button type="button" class="ticker-toggle" id="tickerToggle" aria-label="Pause ticker">⏸</button>
 </div>
 
-<div class="fake-banner" role="note">⚠️ <strong>NettoLens has not launched a token.</strong><span class="fb-long"> Any token using our name or logo is not ours. If we ever launch, the contract will be posted here first.</span><span class="fb-short"> Tokens using our name aren't ours.</span></div>
+<div class="fake-banner" id="nettoBanner" role="note">⚠️ <strong>NettoLens has not launched a token.</strong><span class="fb-long"> Any token using our name or logo is not ours. If we ever launch, the contract will be posted here first.</span><span class="fb-short"> Tokens using our name aren't ours.</span></div>
 
 <div class="status-banner">
   🚧 <strong>Early build — live and public.</strong><span class="sb-long"> Scanner, trending pairs, watchlist and trade calculator all run on real data today. New tools ship weekly.</span> <span class="build-tag" title="Site build">build 10.05-b</span>
@@ -1703,6 +1707,33 @@
 </div>
 
 <script>
+// ============================================================
+//  $NETTO RESMI KONTRAT ADRESI  —  lansman gunu sadece burayi doldur
+//  Ornek: const OFFICIAL_NETTO_CA = '0x1234...abcd';
+//  Bos birakilirsa site "henuz token yok" uyarisini gosterir.
+// ============================================================
+const OFFICIAL_NETTO_CA = '';
+
+(function () {
+  const ca = (OFFICIAL_NETTO_CA || '').trim();
+  const el = document.getElementById('nettoBanner');
+  if (!el) return;
+  if (!ca) { el.style.display = 'none'; return; }   // CA girilene kadar bant gizli
+  const short = ca.slice(0, 6) + '…' + ca.slice(-4);
+  el.classList.add('official');
+  el.innerHTML = '✅ <strong>Official $NETTO contract:</strong> '
+    + '<span class="fb-long"><span class="fb-ca">' + ca + '</span></span>'
+    + '<span class="fb-short"><span class="fb-ca">' + short + '</span></span>'
+    + '<button type="button" class="fb-copy" id="nettoCopy">Copy</button>'
+    + '<span class="fb-long"> Any other NETTO token is not ours.</span>';
+  const btn = document.getElementById('nettoCopy');
+  btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(ca); btn.textContent = 'Copied ✓'; }
+    catch (e) { btn.textContent = 'Copy failed'; }
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
+})();
+
 const CHAINS = {
   robinhood: {
     label: "Robinhood Chain",
@@ -3587,14 +3618,15 @@ async function runScan() {
       h => probeBondingCurve(chain.rpc, chain.explorer, h, address));
     const curve = holderInfo.available ? holderInfo.curve : null;
     {
-      // Tokens borrowing our own name. NettoLens has no token yet; once it does, its address goes in OFFICIAL_NETTO.
-      const OFFICIAL_NETTO = [];
+      // Tokens borrowing our own name. The official address comes from OFFICIAL_NETTO_CA at the top of this script.
+      const OFFICIAL_NETTO = OFFICIAL_NETTO_CA.trim() ? [OFFICIAL_NETTO_CA.trim().toLowerCase()] : [];
+      const launched = OFFICIAL_NETTO.length > 0;
       const nm = `${holderInfo.name || ''} ${holderInfo.symbol || ''} ${(contractData && contractData.name) || ''}`;
       const box = document.getElementById('imposterBox');
-      if (/netto ?lens|netto ?chain|\bnetto\b/i.test(nm) && !OFFICIAL_NETTO.includes(address.toLowerCase())) {
-        signals.unshift({ text: 'This token uses the NettoLens name but is not ours. NettoLens has not launched a token', level: 'bad' });
+      if (launched && /netto ?lens|netto ?chain|\bnetto\b/i.test(nm) && !OFFICIAL_NETTO.includes(address.toLowerCase())) {
+        signals.unshift({ text: launched ? 'This token uses the NettoLens name but is not the official $NETTO contract' : 'This token uses the NettoLens name but is not ours. NettoLens has not launched a token', level: 'bad' });
         capAt(20, 'it uses the NettoLens name without being an official NettoLens token');
-        if (box) { box.innerHTML = '<b>⚠ Not a NettoLens token</b>This token uses our name or logo, but NettoLens has not launched a token. We did not create it and do not control it.'; box.classList.add('on'); }
+        if (box) { box.innerHTML = launched ? '<b>⚠ Not the official $NETTO</b>This token uses our name or logo, but it is not the official $NETTO contract (' + escHtml(OFFICIAL_NETTO_CA.trim()) + '). We did not create it and do not control it.' : '<b>⚠ Not a NettoLens token</b>This token uses our name or logo, but NettoLens has not launched a token. We did not create it and do not control it.'; box.classList.add('on'); }
       } else if (box) { box.classList.remove('on'); box.innerHTML = ''; }
     }
     if (holderInfo.available) {
